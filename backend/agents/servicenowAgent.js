@@ -283,6 +283,11 @@ function mapIncident(inc) {
         ? inc.opened_at.display_value
         : inc.opened_at;
 
+    // Extract caller (customer) name from the caller_id reference field
+    const callerName = typeof inc.caller_id === 'object'
+        ? (inc.caller_id.display_value || null)
+        : null;
+
     return {
         sys_id:     inc.sys_id?.value        || inc.sys_id     || '',
         number:     inc.number?.display_value || inc.number    || '',
@@ -290,6 +295,7 @@ function mapIncident(inc) {
         state:      stateLabel,
         openedAt:   openedAt ? openedAt.split(' ')[0] : '', // date only, no time
         assignedTo: assignee,
+        callerName,
         url:        `${INSTANCE}/incident.do?sys_id=${inc.sys_id?.value || inc.sys_id}`
     };
 }

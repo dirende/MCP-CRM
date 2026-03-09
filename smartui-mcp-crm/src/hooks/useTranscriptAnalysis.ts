@@ -23,7 +23,8 @@ import { Logger } from '../utils/Logger';
 export function useTranscriptAnalysis(
     interactionId: string,
     contactInfo:   string,
-    backendUrl:    string
+    backendUrl:    string,
+    hasMessages:   boolean = false
 ) {
     const [data,    setData]    = useState<CustomerIntel | null>(null);
     const [loading, setLoading] = useState(false);
@@ -77,7 +78,7 @@ export function useTranscriptAnalysis(
 
         // Cleanup: cancel the request if the component unmounts or inputs change
         return () => controller.abort();
-    }, [interactionId, contactInfo, backendUrl]);
+    }, [interactionId, contactInfo, backendUrl, hasMessages]);
 
     return { data, loading, error };
 }

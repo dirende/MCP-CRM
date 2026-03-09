@@ -89,9 +89,6 @@ function App({ ctiMessage, params, id }: AppProps) {
     // Each hook manages its own loading/error state and fetches from the backend.
     // They automatically re-fetch whenever contactInfo or backendUrl changes.
 
-    const { data: intel, loading: intelLoading, error: intelError } =
-        useTranscriptAnalysis(interactionId, contactInfo, backendUrl);
-
     const { data: history, loading: histLoading, error: histError } =
         useGenesysHistory(contactInfo, backendUrl);
 
@@ -102,6 +99,10 @@ function App({ ctiMessage, params, id }: AppProps) {
     const mediaType = ctiMessage?.MediaType || '';
     const { messages: liveMessages, loading: liveLoading, error: liveError } =
         useLiveMessages(interactionId, mediaType, backendUrl);
+
+    // Re-analyze transcript once live messages arrive (covers webmessaging before voice transcript is available)
+    const { data: intel, loading: intelLoading, error: intelError } =
+        useTranscriptAnalysis(interactionId, contactInfo, backendUrl, liveMessages.length > 0);
 
     // ── onOpen Callback ───────────────────────────────────────────
 
@@ -168,8 +169,12 @@ function App({ ctiMessage, params, id }: AppProps) {
                 )}
 
                 {/* Customer Intelligence — transcript analysis via Claude AI + Gemini */}
+                {/* customerName: prefer Claude extraction, fallback to ServiceNow caller_id */}
                 <CustomerIntelCard
-                    data={intel}
+                    data={intel ? {
+                        ...intel,
+                        customerName: intel.customerName || cases?.[0]?.callerName || null
+                    } : null}
                     loading={intelLoading}
                     error={intelError}
                     contactInfo={contactInfo}

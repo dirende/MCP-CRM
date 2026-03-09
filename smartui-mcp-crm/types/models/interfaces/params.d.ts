@@ -51,5 +51,6 @@ export interface SnowCase {
     state: string;
     openedAt: string;
     assignedTo: string;
+    callerName?: string | null;
     url?: string;
 }

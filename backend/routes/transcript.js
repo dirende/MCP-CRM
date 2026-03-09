@@ -53,6 +53,21 @@ router.get('/analyze', async (req, res) => {
                 // Non-fatal: proceed with null transcript → fallback intel will be returned
                 console.warn(`[transcript] Cannot fetch transcript for ${interactionId}:`, e.message);
             }
+
+            // If no transcript available, try live messages buffer as fallback.
+            // Works for webmessaging/chat; silently fails for voice (404 from Genesys).
+            if (!transcriptText) {
+                try {
+                    const { getLiveMessages } = require('../agents/notificationsAgent');
+                    const msgs = await getLiveMessages(interactionId);
+                    if (msgs.length) {
+                        transcriptText = msgs.map(m => `${m.sender}: ${m.body}`).join('\n');
+                        console.log(`[transcript] using ${msgs.length} live msg(s) as transcript for ${interactionId}`);
+                    }
+                } catch (e) {
+                    // Expected for voice calls — no messaging endpoint available
+                }
+            }
         }
 
         // Analyze transcript (with AI or heuristic fallback)

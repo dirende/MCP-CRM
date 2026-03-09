@@ -17,7 +17,7 @@ import { CustomerIntel } from '../models/interfaces/params';
  * @param backendUrl    - Backend base URL. Empty = use mock data.
  * @returns { data, loading, error }
  */
-export declare function useTranscriptAnalysis(interactionId: string, contactInfo: string, backendUrl: string): {
+export declare function useTranscriptAnalysis(interactionId: string, contactInfo: string, backendUrl: string, hasMessages?: boolean): {
     data: CustomerIntel;
     loading: boolean;
     error: string;

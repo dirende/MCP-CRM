@@ -30,8 +30,14 @@ const MEDIA_ICON: Record<string, string> = {
  * Data comes from the useTranscriptAnalysis hook (via App.tsx).
  */
 export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType }: Props) => {
-    // collapsed = true → only the header bar is visible, body content is hidden
-    const [collapsed, setCollapsed] = React.useState(false);
+    // Start collapsed; auto-expand when meaningful data arrives
+    const [collapsed, setCollapsed] = React.useState(true);
+
+    React.useEffect(() => {
+        if (data && (data.requestType !== 'unknown' || data.requestSummary || data.excerpt || data.customerName)) {
+            setCollapsed(false);
+        }
+    }, [data]);
 
     return (
         <Box sx={cardSx}>
@@ -82,18 +88,24 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                                 <IntelField label="Contatto"     value={data.contact || contactInfo} />
                             </Box>
 
-                            {/* Request type chip — shows new case / existing case / unknown */}
+                            {/* Request type + Gemini summary */}
                             <Box sx={intelFieldFullSx}>
                                 <Typography sx={intelLabelSx}>Tipo Richiesta</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', mb: data.requestSummary ? '6px' : 0 }}>
                                     <RequestTypeChip type={data.requestType} caseRef={data.caseNumber} />
-                                    {/* Gemini summary — 3-4 word natural language label of the request */}
-                                    {data.requestSummary && (
-                                        <Typography sx={requestSummarySx}>
-                                            ✦ {data.requestSummary}
-                                        </Typography>
-                                    )}
                                 </Box>
+                                {/* Gemini summary — prominent block below the chip */}
+                                {data.requestSummary && (
+                                    <Box sx={requestSummaryBoxSx}>
+                                        <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#818cf8',
+                                            textTransform: 'uppercase', letterSpacing: '0.5px', mb: '3px' }}>
+                                            ✦ Gemini AI
+                                        </Typography>
+                                        <Typography sx={requestSummaryTextSx}>
+                                            {data.requestSummary}
+                                        </Typography>
+                                    </Box>
+                                )}
                             </Box>
 
                             {/* Transcript excerpt — scrollable monospace text box */}
@@ -122,21 +134,27 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
 const RequestTypeChip = ({ type, caseRef }: { type: CustomerIntel['requestType']; caseRef?: string }) => {
     if (type === 'new_case') {
         return (
-            <Chip size="small" icon={<AddCircleOutlineIcon />} label="Nuovo Case"
-                sx={{ fontSize: '0.65rem', background: 'rgba(239,68,68,0.12)', color: '#ef4444',
-                    border: '1px solid rgba(239,68,68,0.3)', '& .MuiChip-icon': { color: '#ef4444' } }} />
+            <Chip icon={<AddCircleOutlineIcon />} label="Nuovo Case"
+                sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
+                    background: 'rgba(239,68,68,0.15)', color: '#f87171',
+                    border: '1px solid rgba(239,68,68,0.4)',
+                    '& .MuiChip-icon': { color: '#f87171', fontSize: '16px' } }} />
         );
     }
     if (type === 'existing_case') {
         return (
-            <Chip size="small" icon={<AssignmentIcon />} label={caseRef || 'Case esistente'}
-                sx={{ fontSize: '0.65rem', background: 'rgba(34,197,94,0.12)', color: '#22c55e',
-                    border: '1px solid rgba(34,197,94,0.3)', '& .MuiChip-icon': { color: '#22c55e' } }} />
+            <Chip icon={<AssignmentIcon />} label={caseRef || 'Case esistente'}
+                sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
+                    background: 'rgba(34,197,94,0.15)', color: '#4ade80',
+                    border: '1px solid rgba(34,197,94,0.4)',
+                    '& .MuiChip-icon': { color: '#4ade80', fontSize: '16px' } }} />
         );
     }
     return (
-        <Chip size="small" icon={<HelpOutlineIcon />} label="Indeterminato"
-            sx={{ fontSize: '0.65rem', background: 'rgba(148,163,184,0.1)', color: '#94a3b8' }} />
+        <Chip icon={<HelpOutlineIcon />} label="In analisi..."
+            sx={{ fontSize: '0.72rem', fontWeight: 600, height: '26px',
+                background: 'rgba(148,163,184,0.1)', color: '#94a3b8',
+                '& .MuiChip-icon': { color: '#94a3b8', fontSize: '16px' } }} />
     );
 };
 
@@ -249,11 +267,19 @@ const badgeSx = (color: string, bg: string) => ({
     '& .MuiChip-label': { padding: '0 6px' }
 });
 
-// Gemini request summary — italic label shown next to the request type chip
-const requestSummarySx = {
-    fontSize:   '0.72rem',
+// Gemini summary container — subtle indigo box below the request type chip
+const requestSummaryBoxSx = {
+    background:   'rgba(99,102,241,0.08)',
+    border:       '1px solid rgba(99,102,241,0.25)',
+    borderRadius: '6px',
+    padding:      '6px 9px',
+    marginTop:    '4px'
+};
+
+const requestSummaryTextSx = {
+    fontSize:   '0.82rem',
     fontStyle:  'italic',
-    color:      '#a5b4fc', // soft indigo to distinguish from regular text
+    color:      '#c7d2fe',
     fontWeight: 500,
-    lineHeight: 1.3
+    lineHeight: 1.4
 };
