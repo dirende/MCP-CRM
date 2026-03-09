@@ -23,6 +23,16 @@ export interface CustomerIntel {
     caseNumber?: string;
     caseDate?: string;
     excerpt?: string;
+    /** 3-4 word Italian summary of the customer's request, produced by Google Gemini */
+    requestSummary?: string;
+}
+/** Single message in a live webmessaging/chat conversation */
+export interface ChatMessage {
+    id: string;
+    body: string;
+    direction: 'inbound' | 'outbound';
+    timestamp: string;
+    sender: string;
 }
 /** Singola interazione storica Genesys */
 export interface GenesysInteraction {

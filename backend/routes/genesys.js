@@ -34,6 +34,28 @@ router.get('/history', async (req, res) => {
 });
 
 /**
+ * GET /api/genesys/messages?interactionId=<conversationId>
+ *
+ * Returns the current messages of an active webmessaging/chat conversation.
+ * Intended to be polled every 3 seconds by the Live Chat panel in the SmartUI.
+ *
+ * Response: { messages: ChatMessage[] }
+ * Each message: { id, body, direction, timestamp, sender }
+ */
+router.get('/messages', async (req, res) => {
+    const { interactionId } = req.query;
+    if (!interactionId) return res.status(400).json({ error: 'interactionId is required' });
+
+    try {
+        const messages = await genesys.getLiveMessages(interactionId);
+        res.json({ messages });
+    } catch (e) {
+        console.error('[genesys] messages error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
  * GET /api/genesys/token
  *
  * Debug/test endpoint — verifies that Genesys authentication is working.

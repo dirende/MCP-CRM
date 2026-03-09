@@ -309,4 +309,19 @@ function formatDuration(sec) {
     return `${Math.floor(sec / 60)}m ${(sec % 60).toString().padStart(2, '0')}s`;
 }
 
-module.exports = { getToken, ensureAuth, getConversation, getTranscript, getInteractionHistory };
+// ── Live Messages ─────────────────────────────────────────────────
+
+/**
+ * Returns buffered live messages for an active webmessaging/chat conversation.
+ * Messages are collected in real time by the NotificationsAgent (WebSocket).
+ *
+ * @param {string} conversationId - Genesys conversation ID
+ * @returns {Promise<Array>} Array of ChatMessage sorted oldest→newest
+ */
+async function getLiveMessages(conversationId) {
+    // Delegate to the NotificationsAgent which maintains the WebSocket + buffer
+    const notifications = require('./notificationsAgent');
+    return notifications.getLiveMessages(conversationId);
+}
+
+module.exports = { getToken, ensureAuth, getConversation, getTranscript, getInteractionHistory, getLiveMessages };

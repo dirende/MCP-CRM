@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * TranscriptAgent — Transcript analysis via Claude AI
+ * TranscriptAgent — Transcript analysis via Claude AI + Google Gemini
  *
  * Analyzes a conversation transcript and returns structured CustomerIntel:
  *  - Customer name
@@ -9,13 +9,19 @@
  *  - Request type (new_case / existing_case / unknown)
  *  - Case number if mentioned
  *  - A short excerpt summarizing the customer's issue
+ *  - requestSummary: 3-4 word Italian label of the customer's request (via Gemini)
  *
  * Fallback chain (in order):
  *  1. Claude AI (claude-haiku) — if ANTHROPIC_API_KEY is configured
  *  2. Regex / heuristic analysis — if no API key (fast, no cost, lower accuracy)
  *  3. Empty intel object — if transcript is missing or too short
+ *
+ * requestSummary fallback chain:
+ *  1. Google Gemini (gemini-2.0-flash) — if GEMINI_API_KEY is configured
+ *  2. null — if no key or Gemini call fails
  */
 const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // System prompt for Claude — written in Italian to match the transcript language.
 // The model is instructed to return ONLY valid JSON with no extra text.
@@ -37,7 +43,7 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo.`;
  *
  * @param {string} transcriptText - Full text of the conversation transcript
  * @param {string} contactInfo    - Known customer contact (phone/email) used as fallback
- * @returns {Promise<Object>} CustomerIntel object
+ * @returns {Promise<Object>} CustomerIntel object (includes requestSummary from Gemini)
  */
 async function analyzeTranscript(transcriptText, contactInfo) {
 
@@ -46,10 +52,28 @@ async function analyzeTranscript(transcriptText, contactInfo) {
         return fallbackIntel(contactInfo, transcriptText);
     }
 
+    // Run structured extraction (Claude or heuristic) and Gemini summary in parallel
+    const [intel, requestSummary] = await Promise.all([
+        extractIntel(transcriptText, contactInfo),
+        geminiSummarize(transcriptText)
+    ]);
+
+    return { ...intel, requestSummary };
+}
+
+/**
+ * Extracts structured CustomerIntel fields from the transcript.
+ * Uses Claude AI if key is available, heuristic regex otherwise.
+ *
+ * @param {string} text        - Transcript text
+ * @param {string} contactInfo - Known contact for fallback
+ * @returns {Promise<Object>} CustomerIntel without requestSummary
+ */
+async function extractIntel(text, contactInfo) {
     // No API key configured — use the free heuristic approach
     if (!process.env.ANTHROPIC_API_KEY) {
         console.warn('[TranscriptAgent] ANTHROPIC_API_KEY not configured — using heuristic fallback');
-        return heuristicAnalysis(transcriptText, contactInfo);
+        return heuristicAnalysis(text, contactInfo);
     }
 
     // Claude AI analysis
@@ -59,7 +83,7 @@ async function analyzeTranscript(transcriptText, contactInfo) {
             model:      'claude-haiku-4-5-20251001', // Haiku: fast and cheap for structured extraction
             max_tokens: 512,
             system:     SYSTEM_PROMPT,
-            messages:   [{ role: 'user', content: `Transcript:\n\n${transcriptText}` }]
+            messages:   [{ role: 'user', content: `Transcript:\n\n${text}` }]
         });
 
         const raw = message.content[0]?.text?.trim() || '{}';
@@ -73,12 +97,47 @@ async function analyzeTranscript(transcriptText, contactInfo) {
             contact:      parsed.contact      || contactInfo,
             requestType:  parsed.requestType  || 'unknown',
             caseNumber:   parsed.caseNumber   || null,
-            excerpt:      parsed.excerpt      || transcriptText.slice(0, 200)
+            excerpt:      parsed.excerpt      || text.slice(0, 200)
         };
 
     } catch (e) {
         console.error('[TranscriptAgent] Claude error:', e.message);
-        return heuristicAnalysis(transcriptText, contactInfo); // graceful degradation
+        return heuristicAnalysis(text, contactInfo); // graceful degradation
+    }
+}
+
+/**
+ * Calls Google Gemini to produce a concise 3-4 word Italian label
+ * describing the customer's main request (e.g. "problema fattura non pagata").
+ *
+ * Returns null if GEMINI_API_KEY is not set or the call fails.
+ *
+ * @param {string} text - Transcript text
+ * @returns {Promise<string|null>}
+ */
+async function geminiSummarize(text) {
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn('[TranscriptAgent] GEMINI_API_KEY not configured — requestSummary will be null');
+        return null;
+    }
+
+    try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt =
+            `Leggi il seguente transcript di una conversazione con un cliente e rispondi con ` +
+            `SOLE 3-4 parole in italiano che descrivono sinteticamente la richiesta principale del cliente. ` +
+            `Niente punteggiatura, niente frasi complete. Solo le parole chiave.\n\nTranscript:\n${text}`;
+
+        const result = await model.generateContent(prompt);
+        const summary = result.response.text().trim().slice(0, 60); // max 60 chars safety cap
+        console.log(`[TranscriptAgent] Gemini requestSummary: "${summary}"`);
+        return summary || null;
+
+    } catch (e) {
+        console.error('[TranscriptAgent] Gemini error:', e.message);
+        return null;
     }
 }
 

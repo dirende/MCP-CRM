@@ -6,9 +6,11 @@ import { CloseBar } from './components/CloseBar';
 import { CustomerIntelCard } from './components/CustomerIntelCard';
 import { InteractionHistoryCard } from './components/InteractionHistoryCard';
 import { ServiceNowCard } from './components/ServiceNowCard';
+import { LiveChatCard } from './components/LiveChatCard';
 import { useTranscriptAnalysis } from './hooks/useTranscriptAnalysis';
 import { useGenesysHistory } from './hooks/useGenesysHistory';
 import { useServiceNowCases } from './hooks/useServiceNowCases';
+import { useLiveMessages } from './hooks/useLiveMessages';
 
 // pClient is injected at runtime by the Genesys PEF (Partner Extension Framework)
 // and declared as a global in index.d.ts. It provides the CTI messaging bridge.
@@ -96,6 +98,11 @@ function App({ ctiMessage, params, id }: AppProps) {
     const { cases, loading: casesLoading, error: casesError, createCase, creating } =
         useServiceNowCases(contactInfo, backendUrl);
 
+    // Live chat messages — only active for webmessaging/chat channels
+    const mediaType = ctiMessage?.MediaType || '';
+    const { messages: liveMessages, loading: liveLoading, error: liveError } =
+        useLiveMessages(interactionId, mediaType, backendUrl);
+
     // ── onOpen Callback ───────────────────────────────────────────
 
     // Notify the PEF host that the widget has opened (used for analytics/logging)
@@ -150,13 +157,23 @@ function App({ ctiMessage, params, id }: AppProps) {
                 padding="10px"
                 sx={{ '&::-webkit-scrollbar': { width: '4px' } }}
             >
-                {/* Customer Intelligence — transcript analysis via Claude AI */}
+                {/* Live Chat — real-time message bubbles (webmessaging/chat only) */}
+                {(mediaType === 'webmessaging' || mediaType === 'chat') && (
+                    <LiveChatCard
+                        messages={liveMessages}
+                        loading={liveLoading}
+                        error={liveError}
+                        mediaType={mediaType}
+                    />
+                )}
+
+                {/* Customer Intelligence — transcript analysis via Claude AI + Gemini */}
                 <CustomerIntelCard
                     data={intel}
                     loading={intelLoading}
                     error={intelError}
                     contactInfo={contactInfo}
-                    mediaType={ctiMessage.MediaType || ''}
+                    mediaType={mediaType}
                 />
 
                 {/* Interaction History — last 5 interactions from Genesys Cloud */}

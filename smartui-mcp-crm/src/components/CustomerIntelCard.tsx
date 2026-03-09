@@ -85,7 +85,15 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                             {/* Request type chip — shows new case / existing case / unknown */}
                             <Box sx={intelFieldFullSx}>
                                 <Typography sx={intelLabelSx}>Tipo Richiesta</Typography>
-                                <RequestTypeChip type={data.requestType} caseRef={data.caseNumber} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <RequestTypeChip type={data.requestType} caseRef={data.caseNumber} />
+                                    {/* Gemini summary — 3-4 word natural language label of the request */}
+                                    {data.requestSummary && (
+                                        <Typography sx={requestSummarySx}>
+                                            ✦ {data.requestSummary}
+                                        </Typography>
+                                    )}
+                                </Box>
                             </Box>
 
                             {/* Transcript excerpt — scrollable monospace text box */}
@@ -240,3 +248,12 @@ const badgeSx = (color: string, bg: string) => ({
     color, background: bg,
     '& .MuiChip-label': { padding: '0 6px' }
 });
+
+// Gemini request summary — italic label shown next to the request type chip
+const requestSummarySx = {
+    fontSize:   '0.72rem',
+    fontStyle:  'italic',
+    color:      '#a5b4fc', // soft indigo to distinguish from regular text
+    fontWeight: 500,
+    lineHeight: 1.3
+};
