@@ -100,9 +100,9 @@ function App({ ctiMessage, params, id }: AppProps) {
     const { messages: liveMessages, loading: liveLoading, error: liveError } =
         useLiveMessages(interactionId, mediaType, backendUrl);
 
-    // Re-analyze transcript once live messages arrive (covers webmessaging before voice transcript is available)
+    // Re-analyze every 3 new messages (revision 1 at msg 3, 2 at msg 6, etc.)
     const { data: intel, loading: intelLoading, error: intelError } =
-        useTranscriptAnalysis(interactionId, contactInfo, backendUrl, liveMessages.length > 0);
+        useTranscriptAnalysis(interactionId, contactInfo, backendUrl, Math.floor(liveMessages.length / 3));
 
     // ── onOpen Callback ───────────────────────────────────────────
 

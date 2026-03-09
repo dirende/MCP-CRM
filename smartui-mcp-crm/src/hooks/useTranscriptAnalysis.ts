@@ -24,7 +24,7 @@ export function useTranscriptAnalysis(
     interactionId: string,
     contactInfo:   string,
     backendUrl:    string,
-    hasMessages:   boolean = false
+    messageRevision: number = 0
 ) {
     const [data,    setData]    = useState<CustomerIntel | null>(null);
     const [loading, setLoading] = useState(false);
@@ -78,7 +78,7 @@ export function useTranscriptAnalysis(
 
         // Cleanup: cancel the request if the component unmounts or inputs change
         return () => controller.abort();
-    }, [interactionId, contactInfo, backendUrl, hasMessages]);
+    }, [interactionId, contactInfo, backendUrl, messageRevision]);
 
     return { data, loading, error };
 }
