@@ -1,0 +1,19 @@
+# Credentials — NEVER commit
+.env
+backend/.env
+
+# Dependencies
+node_modules/
+backend/node_modules/
+smartui-mcp-crm/node_modules/
+
+# Build artifacts (lib/ is committed — it's the compiled bundle served by frontend)
+smartui-mcp-crm/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

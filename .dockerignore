@@ -1,0 +1,13 @@
+# Source directories not needed in the frontend image
+smartui-mcp-crm/
+smartui-embedcustomurl/
+backend/
+
+# Dev/build artifacts
+node_modules/
+*.log
+
+# IDE / OS files
+.git/
+*.md
+CLAUDE.md

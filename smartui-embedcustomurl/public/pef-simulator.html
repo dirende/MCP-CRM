@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <script src="https://code.jquery.com/jquery-3.6.1.min.js"
+    integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
+  <script src="../node_modules/@softphone/cti-connector-jsdk/dist/softphone-connector-core.debug.js"></script>
+  <style>
+    #pureFrame {
+      height: 500px !important;
+    }
+
+    #btn-smartui-embedcustomurl {
+      display: block;
+      width: 23px;
+      height: 23px;
+      margin-top: -2px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="pef-container" style="position: absolute;bottom:0;left:0;width:350px;height:500px"></div>
+  <script>
+    const genesys_clod_environment = "mypurecloud.com";
+    log.setLogLevel(enumloglevel.debug);
+    var params = {
+      customInteractionAttributes: ["context.email", "context.name", "context.surname", `smartui_smartui-embedcustomurl`],
+      settings: {
+        hideWebRTCPopUpOption: false,
+        enableCallLogs: false,
+        hideCallLogSubject: false,
+        hideCallLogContact: false,
+        hideCallLogRelation: false,
+        dedicatedLoginWindow: false,
+        embeddedInteractionWindow: false,
+        enableConfigurableCallerId: false,
+        enableServerSideLogging: false,
+        enableCallHistory: false
+      },
+      clientIds: {
+        "mypurecloud.ie": "5e7155c1-90dd-428d-a7b0-47e8d73c3c05",
+        "mypurecloud.com": "5e7155c1-90dd-428d-a7b0-47e8d73c3c05",
+        "mypurecloud.de": "5e7155c1-90dd-428d-a7b0-47e8d73c3c05"
+      },
+      helpLinks: {}
+    };
+    console.log("params : ", params);
+
+    var url = `https://apps.${genesys_clod_environment}/crm/softphoneGenericCRM/index.html?request_configuration=true&full_PEF=true&crm_domain=${window.location.origin}`;
+    console.log("url : ", url);
+
+    const onOpen =
+      `
+      {
+        "onOpen":"()=>{
+          return new Promise((resolve, reject) => {
+            setTimeout(() => {
+              console.log(\\"onOpen\\");
+              resolve(true);}, 1000);
+              });}",
+        "onClose":"()=>{
+          return new Promise((resolve, reject) => {
+            setTimeout(() => {
+              console.log(\\"onClose\\");
+              resolve(true);}, 1000);
+              });}",
+          "embeddedUrl":"https://apps.mypurecloud.com/crm/softphoneMSDynamics/embeddablePane.html?component=parkedConversations",
+          "style":
+            {
+            "transform":"scale(0.5)",
+            "margin":0,"border":0,
+            "padding":"0px",
+            "width":"calc(100% * calc(1 / calc(1 - 0.5)))",
+            "minHeight":"calc(100% * calc(1 / calc(1 - 0.5)))",
+            "transformOrigin":"0 0"}
+        }
+  }`;
+
+
+    var auth = {
+      environment: genesys_clod_environment,
+    }
+    var config = {
+      context: window,
+      layoutType: "smart-ui",
+      integrationType: "pure-embeddable",
+      url: url,
+      auth: auth,
+      pefParams: params,
+      smartUi: {
+        mainJSpath: "../node_modules/@softphone/cti-connector-jsdk/dist/softphone-connector-smart-ui.debug.js",
+        // interactionUrl: interactionUrl,
+        appendToElement: "pef-container",
+        showConnectionLed: false,
+       
+        globalViews: [{
+          "id": "smartui-embedcustomurl",
+          "params": {
+
+            "title": "Auvios Video",
+            "embeddedUrl": "https://www.html.it/",
+            "style": {
+              "transform": "scale(0.5)",
+              "margin": 0, "border": 0,
+              "padding": "0px",
+              "width": "calc(100% * calc(1 / calc(1 - 0.5)))",
+              "minHeight": "calc(100% * calc(1 / calc(1 - 0.5)))",
+              "transformOrigin": "0 0"
+            }
+          },
+          "buttonColor": "#8B0000",
+          "classname": "smartui-embedcustomurl",
+          "title": "Auvios",
+          "hideHeader": true,
+          "jspath": "../dist/smartui-embedcustomurl.js",
+          "imageURL": "auvios_logo_white.png",
+          "icon" : "sms",
+          "type": "view"
+        }]
+      }
+    }
+
+
+    function incrementWidgetWidth() {
+      console.log("incrementWidgetWidth")
+      var iframe = document.getElementById("pureFrame");
+
+      var currentWidth = 350;
+      if (iframe.width != "") {
+        currentWidth = parseInt(iframe.width);
+      }
+      iframe.width = "" + (currentWidth + 200);
+
+    }
+
+    function decrementWidgetWidth() {
+      var iframe = document.getElementById("pureFrame");
+
+      var currentWidth = 350;
+      if (iframe.width != "") {
+        currentWidth = parseInt(iframe.width);
+      }
+
+      if (currentWidth > 350) {
+        iframe.width = "" + (currentWidth - 200);
+      }
+
+    }
+
+    function moveLeft() {
+
+      sendCustomEvent(enumCustomEventType.ConnectorLayoutChange, { decrement: true });
+
+
+    }
+
+
+    function resetWidgetWidth() {
+      var iframe = document.getElementById("pureFrame");
+      iframe.width = "350";
+
+    }
+
+    function sendCustomEvent(type, data) {
+
+      var event = new CustomEvent(type.toString(), {
+        detail: {
+          data
+        }
+      });
+      config.context.dispatchEvent(event);
+    }
+    $(document).ready(function () {
+      console.log("document ready!");
+      iwscore.initCTI(config);
+      iwscore.enableCTI();
+    });
+
+    async function onActivatePureEmbeddableSessionFullPEF(message) {
+      console.log("onActivatePureEmbeddableSessionFullPEF : ", message);
+      pClient.getWrapupCodes();
+    }
+
+    function onPreActivatePureEmbeddableSessionFullPEF(message) {
+      if (message.token) {
+        iwscore.getConnectorConfig().auth.token = message.token;
+        localStorage.setItem("pureCloudToken", message.token);
+        pClient = new PureClientSdk();
+        pClient.client.setEnvironment(iwscore.getConnectorConfig().auth.environment);
+        pClient.client.setAccessToken(message.token);
+      }
+    }
+    function onPreRequestConfigurationPureEmbeddable(message) {
+      var _params = iwscore.getConnectorConfig();
+      if (_params.integrationType === "pure-embeddable") {
+        iwscore.sendPureEmbeddableConfiguration();
+      }
+    }
+
+    function onChatEventEstablishedInbound(msg) {
+      console.log("onChatEventEstablished : ", msg);
+      //addView(msg);
+    }
+
+    function onEventEstablishedInbound(msg) {
+      console.log("onChatEventEstablished : ", msg);
+      //addView(msg);
+    }
+
+    function onChatEventReleasedInbound(msg) {
+      console.log("onChatEventReleasedInbound : ", msg);
+      iwscore.sendCustomEvent("ConnectorInteractionRemoved", { interactionDeleted: message.InteractionID });
+    }
+
+    function onRestoreFullPEFInteractionsInbound(msg) {
+      if (msg?.MediaType == 'chat') {
+        //addView(msg);
+        iwscore.handleEvent({ EVENT: "SwitchInteractionPEF", InteractionID: msg.InteractionID });
+      }
+    }
+    function addView(msg) {
+      let obj = {
+        id: "smartui-embedcustomurl",
+        classname: "smartui-embedcustomurl",
+        title: "My interaction-view",
+        jspath: "../dist/smartui-embedcustomurl.js",
+        icon: "contact_phone",
+        autoStart: true,
+        type: "interaction",
+        hideHeader: true,
+        params: `{
+          onClose: "()=>{ 
+            console.log('onOpen')
+          }",
+          onClose: "()=>{ 
+            console.log('onClose')
+          }",
+          hideHeader:true,
+          embeddedUrl:"https://apps.${iwscore._iwsLayoutParams.auth.environment}/directory/#/engage/admin/interactions/${msg.InteractionID}",
+          style: "{
+            transformOrigin: "0 0",
+            overflow: "hidden",
+            margin: 0,
+            padding: 0,
+            border: 0,
+            transform: "scale(0.50)",
+            marginLeft: -30,
+            marginTop: -30,
+          }"
+        }`
+      };
+      obj.ctiMessage = msg;
+      window.dispatchEvent(new CustomEvent(enumCustomEventType.ConnectorLocalViewAdded, {
+        detail: obj
+      }));
+
+    }
+
+  </script>
+</body>
+
+</html>
+<script>
+
+</script>

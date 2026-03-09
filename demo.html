@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP-CRM SmartUI — Demo</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='150 -10 330 380'%3E%3Cpath d='M312.737 71.4404L463.72 162.453V268.874L313.765 359.003L161.961 267.629V230.042L313.703 321.6L431.527 250.653V180.447L312.705 108.9L252.875 144.926V178.756L220.681 162.453V126.678L312.737 71.4404Z' fill='%23FF6320'/%3E%3Cpath d='M313.685 0L463.947 90.7889V127.244L313.736 37.361L194.382 109.229V179.615L313.619 251.413L373.487 215.363V181.247L405.681 197.549V233.325H405.673L405.717 233.397L313.605 288.845L162.188 197.666V91.1285L313.685 0Z' fill='%23FF6320'/%3E%3Cpath d='M312.737 71.4404L463.721 162.453V268.874L313.765 359.004L161.962 267.629V230.042L313.703 321.6L431.527 250.653V180.447L312.705 108.9L252.875 144.926V178.756L220.681 162.453V126.678L312.737 71.4404Z' fill='%23FF4F00'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --widget-h: 820px;
+            --topbar-h: 48px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #060c18;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+
+        /* ── TOPBAR ──────────────────────────────── */
+        .topbar {
+            background: #0c1524;
+            border-bottom: 1px solid #1e3358;
+            padding: 0 18px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 13px;
+            color: #fff;
+        }
+
+        .topbar h1 {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .topbar small {
+            font-size: 0.65rem;
+            color: #475569;
+        }
+
+        .badge-mock {
+            margin-left: auto;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 10px;
+            background: rgba(34, 197, 94, 0.12);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+        }
+
+        .badge-err {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            display: none;
+        }
+
+        /* ── BODY ────────────────────────────────── */
+        .body {
+            display: flex;
+            align-items: flex-start;
+            /* min-height consente di superare il viewport: i pannelli si vedono per intero */
+            min-height: calc(var(--widget-h) + 16px);
+        }
+
+        /* ── GENESYS PEF WIDGET (left) ───────────── */
+        /* pef-label = 28px (6+6 padding + 16px testo) */
+        .pef-panel {
+            width: 380px;
+            min-width: 380px;
+            flex-shrink: 0;
+            border-right: 1px solid #1e3358;
+            display: block;
+            height: var(--widget-h);
+        }
+
+        .pef-label {
+            display: block;
+            background: #0a1525;
+            padding: 6px 12px;
+            height: 28px;
+            font-size: 0.58rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid #1e3358;
+        }
+
+        #pef-frame {
+            display: block;
+            border: none;
+            background: #1a2035;
+            width: 100%;
+            height: calc(var(--widget-h) - 28px);
+        }
+
+        /* ── CENTER: SmartUI widget ──────────────── */
+        .center {
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px;
+            background: #060c18;
+        }
+
+        .widget-shell {
+            width: 360px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #1e3358;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            height: var(--widget-h);
+        }
+
+        .widget-titlebar {
+            background: #0c1a2c;
+            padding: 7px 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid #1e3358;
+            flex-shrink: 0;
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .dot-r {
+            background: #3d1212;
+        }
+
+        .dot-y {
+            background: #3d2c0a;
+        }
+
+        .dot-g {
+            background: #0a3d1a;
+        }
+
+        .dot-r.on {
+            background: #ef4444;
+        }
+
+        .dot-y.on {
+            background: #f59e0b;
+        }
+
+        .dot-g.on {
+            background: #22c55e;
+        }
+
+        .wt-label {
+            font-size: 0.62rem;
+            color: #475569;
+            margin-left: 2px;
+        }
+
+        .wt-led {
+            margin-left: auto;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #1e3358;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .wt-led.active {
+            background: #f59e0b;
+            box-shadow: 0 0 7px #f59e0b;
+        }
+
+        .wt-led.idle {
+            background: #22c55e;
+            box-shadow: 0 0 5px #22c55e;
+        }
+
+        /* titlebar = ~35px: pad 7+7 + dots 9 + border 1 + gap = 35px */
+        #sui-wrapper {
+            background: #0f172a;
+            height: calc(var(--widget-h) - 35px);
+            overflow: hidden;
+        }
+
+        #smartui-mcp-crm {
+            height: 100%;
+        }
+
+        /* Scrollbar visibile per il contenuto SmartUI (override dei 4px di React) */
+        #smartui-mcp-crm *::-webkit-scrollbar {
+            width: 7px;
+        }
+        #smartui-mcp-crm *::-webkit-scrollbar-track {
+            background: #0a1525;
+            border-radius: 4px;
+        }
+        #smartui-mcp-crm *::-webkit-scrollbar-thumb {
+            background: #1e3a5f;
+            border-radius: 4px;
+        }
+        #smartui-mcp-crm *::-webkit-scrollbar-thumb:hover {
+            background: #2d5a9f;
+        }
+
+        /* ── LOG PANEL (right) ───────────────────── */
+        .log-panel {
+            width: 240px;
+            min-width: 240px;
+            background: #0a1525;
+            border-left: 1px solid #1e3358;
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+            height: var(--widget-h);
+        }
+
+        .log-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .log-box {
+            flex: 1;
+            background: #060b14;
+            border: 1px solid #1e3358;
+            border-radius: 6px;
+            padding: 7px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.6rem;
+            color: #56d364;
+        }
+
+        .log-box::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .log-box::-webkit-scrollbar-thumb {
+            background: #1e3358;
+        }
+
+        .l {
+            margin-bottom: 2px;
+            line-height: 1.45;
+        }
+
+        .l.i {
+            color: #58a6ff;
+        }
+
+        .l.w {
+            color: #e3b341;
+        }
+
+        .l.e {
+            color: #f85149;
+        }
+
+        .l.a {
+            color: #c792ea;
+        }
+
+        .sim-strip {
+            padding: 8px 6px;
+            border-top: 1px solid #1e3358;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .sim-label-sm {
+            font-size: 0.55rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .s-btn {
+            width: 100%;
+            padding: 5px 8px;
+            border-radius: 5px;
+            border: 1px solid #1e3358;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.65rem;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .s-btn:hover {
+            background: #142033;
+            border-color: #2d5a8a;
+            color: #e2e8f0;
+        }
+
+        .s-btn.active {
+            background: #142033;
+            border-color: #0ea5e9;
+            color: #0ea5e9;
+        }
+
+        .arch-card {
+            background: #0d1d30;
+            border: 1px solid #1e3358;
+            border-radius: 7px;
+            padding: 8px;
+            font-size: 0.6rem;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .arch-card strong {
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        code {
+            font-family: 'Consolas', monospace;
+            font-size: 0.58rem;
+            background: rgba(14, 165, 233, 0.1);
+            color: #38bdf8;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <div class="logo">M</div>
+        <h1>MCP-CRM SmartUI</h1>
+        <small>Genesys PEF · React + TypeScript · mock mode</small>
+        <span class="badge-mock" id="badge-ok">✓ Bundle caricato</span>
+        <span class="badge-err" id="badge-err">✗ Errore bundle</span>
+    </div>
+
+    <div class="body">
+
+        <!-- GENESYS PEF WIDGET -->
+        <div class="pef-panel">
+            <div class="pef-label">Genesys Cloud — PEF Widget</div>
+            <iframe id="pef-frame" src="/simulator/index.html" title="Genesys PEF"></iframe>
+        </div>
+
+        <!-- CENTRO: SmartUI React -->
+        <div class="center">
+            <div class="widget-shell">
+                <div class="widget-titlebar">
+                    <div class="dot dot-r" id="d-r"></div>
+                    <div class="dot dot-y" id="d-y"></div>
+                    <div class="dot dot-g" id="d-g"></div>
+                    <span class="wt-label">MCP-CRM SmartUI</span>
+                    <div class="wt-led" id="wt-led"></div>
+                </div>
+                <div id="sui-wrapper">
+                    <div id="smartui-mcp-crm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOG + SIMULAZIONE MOCK -->
+        <div class="log-panel">
+            <div class="log-title">Console log</div>
+            <div class="log-box" id="logBox">
+                <div class="l i">[demo] Caricamento bundle...</div>
+            </div>
+
+            <div class="sim-strip">
+                <div class="sim-label-sm">▶ Simula (mock, senza login)</div>
+                <button class="s-btn" id="btn-voice" onclick="mockScenario('voice')">📞 Voice IN</button>
+                <button class="s-btn" id="btn-email" onclick="mockScenario('email')">✉️ Email IN</button>
+                <button class="s-btn" id="btn-chat" onclick="mockScenario('chat')">💬 WebMessaging</button>
+                <button class="s-btn" id="btn-wa" onclick="mockScenario('wa')">📱 WhatsApp</button>
+                <button class="s-btn" id="btn-none" onclick="mockScenario('none')">⏸ Idle</button>
+            </div>
+
+            <div class="arch-card">
+                <strong>Flusso PEF reale</strong>
+                Genesys login → evento CTI<br>
+                → <code>mcpCrmAddView(msg)</code><br>
+                → <code>postMessage</code> → SmartUI
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ── process shim (richiesto da React/MUI in bundle webpack mode:none) ──
+        if (typeof window.process === 'undefined') {
+            window.process = { env: { NODE_ENV: 'production' } };
+        }
+
+        // ── Mock globali richiesti dal bundle ────────────────────────
+        window.iwscore = {
+            getConnectorConfig: () => ({
+                auth: { environment: 'mypurecloud.com' },
+                smartUi: { globalViews: [] }
+            }),
+            sendCustomEvent: (name, data) => dlog('sendCustomEvent: ' + name, 'a'),
+            _iwsLayoutParams: { auth: { environment: 'mypurecloud.com' } }
+        };
+        window.enumCustomEventType = {
+            ConnectorLocalViewAdded: 'ConnectorLocalViewAdded',
+            ConnectorInteractionRemoved: 'ConnectorInteractionRemoved'
+        };
+        window.log = {
+            setLogLevel: () => { }, debug: () => { }, info: () => { }, warn: () => { }, error: () => { }
+        };
+
+        // ── Dati scenari mock ─────────────────────────────────────────
+        const MSGS = {
+            voice: {
+                EVENT: 'EventEstablished', MediaType: 'voice', CallType: 'Inbound',
+                ANI: '+393349089191', DNIS: '+13172140816',
+                InteractionID: 'a1db7a49-b6e8-4f00-8958-6aa3bef294dc',
+                ConnectionID: 'a1db7a49-b6e8-4f00-8958-6aa3bef294dc', attachdata: {}
+            },
+            email: {
+                EVENT: 'EmailEventEstablished', MediaType: 'email', CallType: 'Inbound',
+                ANI: 'nicola.dirende@softphone.it',
+                InteractionID: '5441d66b-b9ce-42a1-ba9e-02ecbfee79d5',
+                ConnectionID: '5441d66b-b9ce-42a1-ba9e-02ecbfee79d5',
+                attachdata: { email: 'nicola.dirende@softphone.it' }
+            },
+            chat: {
+                EVENT: 'WebmessagingEventEstablishedInbound', MediaType: 'webmessaging', CallType: 'Inbound',
+                ANI: '', InteractionID: '41e4e0cb-14e9-4a03-a771-25c822bbf331',
+                ConnectionID: '41e4e0cb-14e9-4a03-a771-25c822bbf331',
+                attachdata: { email: 'mario.rossi@azienda.it', emailaddress: 'mario.rossi@azienda.it' }
+            },
+            wa: {
+                EVENT: 'WhatsappEventEstablished', MediaType: 'whatsapp', CallType: 'Inbound',
+                ANI: '393349089191', InteractionID: '821536ca-94e9-4b12-90e4-1f227855f3d0',
+                ConnectionID: '821536ca-94e9-4b12-90e4-1f227855f3d0', attachdata: {}
+            },
+            none: null
+        };
+
+        // ── Logging ──────────────────────────────────────────────────
+        function dlog(msg, type) {
+            const box = document.getElementById('logBox');
+            const el = document.createElement('div');
+            el.className = 'l' + (type ? ' ' + type : '');
+            el.textContent = '[' + new Date().toLocaleTimeString('it-IT') + '] ' + msg;
+            box.appendChild(el);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // ── LED stato ────────────────────────────────────────────────
+        function setLed(state) {
+            const led = document.getElementById('wt-led');
+            led.className = 'wt-led' + (state === 'active' ? ' active' : state === 'idle' ? ' idle' : '');
+            ['d-r', 'd-y', 'd-g'].forEach((id, i) => {
+                const el = document.getElementById(id);
+                el.className = ['dot dot-r', 'dot dot-y', 'dot dot-g'][i] + (state !== 'off' ? ' on' : '');
+            });
+        }
+
+        // ── Monta SmartUI ────────────────────────────────────────────
+        function mountSmartUI(msg) {
+            if (typeof window.interactionViewInit !== 'function') {
+                dlog('Bundle non ancora pronto!', 'e');
+                return;
+            }
+            if (typeof window.mcpCrmUnmount === 'function') {
+                window.mcpCrmUnmount('smartui-mcp-crm');
+            }
+            const wrapper = document.getElementById('sui-wrapper');
+            wrapper.innerHTML = '<div id="smartui-mcp-crm"></div>';
+
+            const params = {
+                title: 'MCP-CRM Integration',
+                backendUrl: 'http://localhost:3000',
+                headerHidden: false,
+                onClose: () => { setLed('idle'); dlog('View chiusa', 'w'); },
+                onOpen: () => { dlog('onOpen fired', 'a'); return Promise.resolve(true); }
+            };
+            window.interactionViewInit(msg || undefined, params, 'smartui-mcp-crm');
+            if (msg) setTimeout(() => setLed('idle'), 3500);
+        }
+
+        // ── Simulazione mock (pulsanti log panel) ─────────────────────
+        function mockScenario(key) {
+            document.querySelectorAll('.s-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('btn-' + key);
+            if (btn) btn.classList.add('active');
+
+            const msg = MSGS[key];
+            if (!msg) { setLed('off'); dlog('Scenario idle', 'w'); mountSmartUI(null); return; }
+            setLed('active');
+            dlog('Mock scenario: ' + key + ' | ' + (msg.ANI || msg.attachdata?.email || ''), 'i');
+            mountSmartUI(msg);
+        }
+
+        // ── Bridge da PEF iframe (interazione reale Genesys) ─────────
+        window.addEventListener('message', function (ev) {
+            if (ev.data?.type === 'mcpCrmInteraction') {
+                const msg = ev.data.msg;
+                dlog('PEF → interazione reale: ' + msg.MediaType + ' | ' + (msg.ANI || ''), 'a');
+                setLed('active');
+                mountSmartUI(msg);
+            }
+        });
+
+        // Cattura errori runtime dal bundle
+        window.addEventListener('error', function (e) {
+            dlog('JS ERROR: ' + e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno, 'e');
+        });
+
+        // ── Bundle onload ────────────────────────────────────────────
+        function onBundleLoaded() {
+            dlog('File bundle ricevuto ✓', 'i');
+            setTimeout(function () {
+                if (typeof window.interactionViewInit === 'function') {
+                    document.getElementById('badge-ok').style.display = '';
+                    document.getElementById('badge-err').style.display = 'none';
+                    dlog('interactionViewInit OK ✓', 'i');
+                    mockScenario('voice');
+                } else {
+                    document.getElementById('badge-ok').style.display = 'none';
+                    document.getElementById('badge-err').style.display = '';
+                    dlog('ERRORE: interactionViewInit non definito — apri F12 > Console', 'e');
+                }
+            }, 300);
+        }
+        function onBundleError() {
+            document.getElementById('badge-ok').style.display = 'none';
+            document.getElementById('badge-err').style.display = '';
+            dlog('ERRORE: /lib/smartui-mcp-crm.js non caricabile', 'e');
+        }
+    </script>
+
+    <!-- Bundle SmartUI React -->
+    <script src="/lib/smartui-mcp-crm.js?v=6" onload="onBundleLoaded()" onerror="onBundleError()"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,9 @@
+# Dev dependencies not needed in production
+node_modules/
+*.log
+
+# Don't bake credentials into image layers
+.env
+
+# Dev tools
+nodemon*

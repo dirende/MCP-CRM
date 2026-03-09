@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationDir": "./types",
+    "typeRoots": [ "./index.d.ts", "./types/*.d.ts", "./node_modules/@softphone", "./node_modules/@types" ],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "sourceMap": false,
+    "target": "es5",
+    "outDir": "js",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noEmit": false,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  
+  "exclude": [
+    "node_modules",
+    "src/**/*.spec.ts",
+    "src/**/__tests__/*.ts"
+  ],
+  "compileOnSave": true,
+}

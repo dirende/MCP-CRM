@@ -1,0 +1,37 @@
+/* MCP-CRM SmartUI global styles */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --accent:  #0ea5e9;
+    --accent2: #6366f1;
+    --ok:      #22c55e;
+    --warn:    #f59e0b;
+    --err:     #ef4444;
+    --bg:      #0f172a;
+    --bg2:     #1e293b;
+    --bg3:     #334155;
+    --border:  #334155;
+    --text:    #e2e8f0;
+    --muted:   #94a3b8;
+}
+
+html, body, #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.smartui-mcp-crm {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* scrollbar globale */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }

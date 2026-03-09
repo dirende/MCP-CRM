@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP-CRM Integration — Genesys PEF</title>
+    <link rel="icon" type="image/svg+xml" href="/simulator/favicon.svg">
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --header-h: 50px;
+            --pef-w: 380px;
+            --sim-h: 48px;
+            --log-h: 160px;
+            --accent: #0ea5e9;
+            --accent2: #6366f1;
+            --ok: #22c55e;
+            --warn: #f59e0b;
+            --err: #ef4444;
+            --bg: #0f172a;
+            --bg2: #1e293b;
+            --bg3: #334155;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+        }
+        html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+        /* ── HEADER ─────────────────────────────────── */
+        header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--header-h); background: #0c1524;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px; padding: 0 18px;
+            z-index: 300; box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+        .hdr-logo {
+            width: 32px; height: 32px; background: linear-gradient(135deg,#0ea5e9,#6366f1);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0;
+        }
+        .hdr-title { font-size: 1rem; font-weight: 700; letter-spacing: -0.3px; }
+        .hdr-sub { font-size: 0.72rem; color: var(--muted); margin-left: 4px; }
+        .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+        .status-led { width: 8px; height: 8px; border-radius: 50%; background: var(--bg3); flex-shrink: 0; }
+        .status-led.connected { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+        .status-led.active { background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: pulse 1.2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        .hdr-status { font-size: 0.72rem; color: var(--muted); }
+        .hdr-btn {
+            padding: 4px 12px; border-radius: 5px; border: 1px solid var(--border);
+            background: var(--bg2); color: var(--text); font-size: 0.72rem; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .hdr-btn:hover { background: var(--bg3); }
+
+        /* ── PEF IFRAME (left) ─────────────────────── */
+        #pef-frame {
+            position: fixed;
+            top: var(--header-h);
+            left: 0;
+            bottom: 0;
+            width: var(--pef-w);
+            border: none;
+            border-right: 1px solid var(--border);
+            z-index: 100;
+            background: #1a2035;
+        }
+
+        /* ── RIGHT PANEL ───────────────────────────── */
+        .right-panel {
+            position: fixed; top: var(--header-h); left: var(--pef-w); right: 0; bottom: 0;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* SIM STRIP */
+        .sim-strip {
+            height: var(--sim-h); background: #0c1524;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 6px; padding: 0 12px; flex-shrink: 0;
+        }
+        .sim-label { font-size: 0.65rem; color: var(--muted); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; margin-right: 4px; }
+        .sim-btn {
+            display: flex; align-items: center; gap: 4px;
+            padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border);
+            background: var(--bg2); color: var(--text); font-size: 0.68rem;
+            cursor: pointer; transition: background 0.12s, border-color 0.12s; white-space: nowrap;
+        }
+        .sim-btn:hover { background: var(--bg3); border-color: var(--accent); }
+        .sim-btn .ic { font-size: 0.75rem; }
+        .sim-btn.act { border-color: var(--warn); color: var(--warn); }
+        .sim-btn.done-btn { border-color: var(--ok); color: var(--ok); }
+
+        /* CARDS AREA */
+        .cards-area {
+            flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .cards-area::-webkit-scrollbar { width: 5px; }
+        .cards-area::-webkit-scrollbar-track { background: transparent; }
+        .cards-area::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+
+        /* CARD */
+        .card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+            overflow: hidden; transition: border-color 0.2s;
+        }
+        .card.active-card { border-color: var(--accent); }
+        .card-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 14px; border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+        }
+        .card-icon {
+            width: 26px; height: 26px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .card-icon.blue { background: rgba(14,165,233,0.15); }
+        .card-icon.purple { background: rgba(99,102,241,0.15); }
+        .card-icon.green { background: rgba(34,197,94,0.15); }
+        .card-title { font-size: 0.8rem; font-weight: 700; }
+        .card-subtitle { font-size: 0.65rem; color: var(--muted); margin-left: auto; }
+        .card-badge {
+            font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+            margin-left: auto;
+        }
+        .card-badge.live { background: rgba(239,68,68,0.15); color: var(--err);
+            animation: pulse 1.5s infinite; }
+        .card-badge.idle { background: var(--bg3); color: var(--muted); }
+        .card-badge.ok { background: rgba(34,197,94,0.15); color: var(--ok); }
+
+        .card-body { padding: 12px 14px; }
+
+        /* CUSTOMER INTEL */
+        .intel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .intel-field { background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            border-radius: 6px; padding: 8px 10px; }
+        .intel-field.full { grid-column: 1 / -1; }
+        .intel-label { font-size: 0.6rem; font-weight: 600; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .intel-value { font-size: 0.82rem; font-weight: 600; color: var(--text); word-break: break-all; }
+        .intel-value.placeholder { color: var(--bg3); font-style: italic; font-weight: 400; font-size: 0.75rem; }
+        .intel-value .tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 10px; font-size: 0.72rem;
+            background: rgba(14,165,233,0.12); color: var(--accent); border: 1px solid rgba(14,165,233,0.3);
+        }
+        .intel-value .tag.new-case { background: rgba(239,68,68,0.12); color: var(--err);
+            border-color: rgba(239,68,68,0.3); }
+        .intel-value .tag.existing { background: rgba(34,197,94,0.12); color: var(--ok);
+            border-color: rgba(34,197,94,0.3); }
+        .transcript-excerpt {
+            font-size: 0.72rem; color: var(--muted); line-height: 1.5;
+            max-height: 80px; overflow-y: auto; background: rgba(0,0,0,0.2);
+            border-radius: 5px; padding: 6px 8px; font-family: 'Consolas', monospace;
+        }
+        .transcript-excerpt::-webkit-scrollbar { width: 3px; }
+        .transcript-excerpt::-webkit-scrollbar-thumb { background: var(--bg3); }
+
+        /* SPINNER */
+        .loading-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 14px 0; color: var(--muted); font-size: 0.75rem;
+        }
+        .spinner {
+            width: 16px; height: 16px; border: 2px solid var(--bg3);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* HISTORY TABLE */
+        .hist-table { width: 100%; border-collapse: collapse; }
+        .hist-table th {
+            font-size: 0.6rem; font-weight: 600; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border);
+        }
+        .hist-table td {
+            font-size: 0.72rem; padding: 7px 8px; border-bottom: 1px solid rgba(51,65,85,0.5);
+            vertical-align: middle;
+        }
+        .hist-table tr:last-child td { border-bottom: none; }
+        .hist-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .media-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600;
+        }
+        .media-badge.voice { background: rgba(14,165,233,0.12); color: var(--accent); }
+        .media-badge.email { background: rgba(99,102,241,0.12); color: var(--accent2); }
+        .media-badge.chat { background: rgba(34,197,94,0.12); color: var(--ok); }
+        .media-badge.whatsapp { background: rgba(34,197,94,0.12); color: #25D366; }
+        .wrapup-chip {
+            display: inline-block; padding: 2px 6px; border-radius: 4px;
+            font-size: 0.65rem; font-weight: 600;
+            background: rgba(148,163,184,0.1); color: var(--muted);
+        }
+
+        /* SNOW CASES */
+        .case-card {
+            background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+            border-radius: 7px; padding: 10px 12px; margin-bottom: 8px;
+        }
+        .case-card:last-child { margin-bottom: 0; }
+        .case-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+        .case-number { font-size: 0.72rem; font-weight: 700; color: var(--accent); }
+        .case-subject { font-size: 0.8rem; font-weight: 600; flex: 1; }
+        .case-state {
+            font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+            white-space: nowrap;
+        }
+        .case-state.open { background: rgba(239,68,68,0.15); color: var(--err); }
+        .case-state.progress { background: rgba(245,158,11,0.15); color: var(--warn); }
+        .case-state.resolved { background: rgba(34,197,94,0.15); color: var(--ok); }
+        .case-meta { display: flex; gap: 14px; font-size: 0.65rem; color: var(--muted); }
+        .case-meta span { display: flex; align-items: center; gap: 3px; }
+        .btn-create-case {
+            width: 100%; margin-top: 10px; padding: 8px; border-radius: 6px;
+            border: 1px dashed var(--border); background: transparent; color: var(--muted);
+            font-size: 0.72rem; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-create-case:hover { border-color: var(--accent); color: var(--accent); background: rgba(14,165,233,0.05); }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center; padding: 24px; color: var(--muted); font-size: 0.75rem;
+        }
+        .empty-state .empty-icon { font-size: 1.8rem; margin-bottom: 6px; opacity: 0.4; }
+
+        /* LOG */
+        .log-panel {
+            height: var(--log-h); background: #080d14; color: #56d364;
+            font-size: 0.67rem; font-family: 'Consolas','Courier New',monospace;
+            overflow-y: auto; padding: 6px 12px; border-top: 1px solid var(--border); flex-shrink: 0;
+        }
+        .log-panel::-webkit-scrollbar { width: 4px; }
+        .log-panel::-webkit-scrollbar-thumb { background: var(--bg3); }
+        .log-entry { margin-bottom: 2px; line-height: 1.45; }
+        .log-entry.err { color: #f85149; }
+        .log-entry.info { color: #58a6ff; }
+        .log-entry.warn { color: #e3b341; }
+        .log-entry.suc { color: #56d364; }
+        .log-entry.api { color: #c792ea; }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="hdr-logo">M</div>
+        <span class="hdr-title">MCP-CRM Integration</span>
+        <span class="hdr-sub">Genesys PEF + ServiceNow</span>
+        <div class="hdr-right">
+            <div class="status-led" id="connLed"></div>
+            <span class="hdr-status" id="connStatus">Disconnesso</span>
+            <button class="hdr-btn" onclick="clearAll()">&#10005; Reset</button>
+        </div>
+    </header>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+
+        <!-- SIMULATE STRIP -->
+        <div class="sim-strip">
+            <span class="sim-label">&#9654; Simula</span>
+            <button class="sim-btn" onclick="simEvent('voiceIn')" title="Voice Inbound Established">
+                <span class="ic">&#128222;</span> Voice IN
+            </button>
+            <button class="sim-btn done-btn" onclick="simEvent('voiceMarkDone')" title="Voice MarkDone / ACW">
+                <span class="ic">&#10003;</span> MarkDone
+            </button>
+            <button class="sim-btn" onclick="simEvent('emailIn')" title="Email Inbound">
+                <span class="ic">&#9993;</span> Email
+            </button>
+            <button class="sim-btn" onclick="simEvent('chatIn')" title="WebMessaging Inbound">
+                <span class="ic">&#128172;</span> Chat
+            </button>
+            <button class="sim-btn" onclick="simEvent('waIn')" title="WhatsApp Inbound">
+                <span class="ic">&#128241;</span> WhatsApp
+            </button>
+            <div style="margin-left:auto;display:flex;gap:6px;">
+                <button class="sim-btn" onclick="toggleBackend()" id="backendBtn">
+                    <span class="ic">&#9685;</span> Backend: <span id="backendStatus">OFF</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- CARDS -->
+        <div class="cards-area">
+
+            <!-- CARD 1: CUSTOMER INTELLIGENCE -->
+            <div class="card" id="card-intel">
+                <div class="card-header">
+                    <div class="card-icon blue">&#127908;</div>
+                    <span class="card-title">Customer Intelligence</span>
+                    <span class="card-subtitle">da Transcript live</span>
+                    <span class="card-badge idle" id="badge-intel">IDLE</span>
+                </div>
+                <div class="card-body" id="body-intel">
+                    <div class="empty-state">
+                        <div class="empty-icon">&#127908;</div>
+                        In attesa di una interazione...
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 2: INTERACTION HISTORY -->
+            <div class="card" id="card-history">
+                <div class="card-header">
+                    <div class="card-icon purple">&#128202;</div>
+                    <span class="card-title">Interaction History</span>
+                    <span class="card-subtitle">Genesys Cloud API</span>
+                    <span class="card-badge idle" id="badge-history">IDLE</span>
+                </div>
+                <div class="card-body" id="body-history">
+                    <div class="empty-state">
+                        <div class="empty-icon">&#128202;</div>
+                        Nessuna interazione storica disponibile
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 3: SERVICENOW CASES -->
+            <div class="card" id="card-snow">
+                <div class="card-header">
+                    <div class="card-icon green">&#127760;</div>
+                    <span class="card-title">ServiceNow Cases</span>
+                    <span class="card-subtitle">ven07529.service-now.com</span>
+                    <span class="card-badge idle" id="badge-snow">IDLE</span>
+                </div>
+                <div class="card-body" id="body-snow">
+                    <div class="empty-state">
+                        <div class="empty-icon">&#127760;</div>
+                        Nessun case disponibile
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /cards-area -->
+
+        <!-- LOG -->
+        <div class="log-panel" id="logPanel">
+            <div class="log-entry info">[MCP-CRM] Inizializzazione...</div>
+        </div>
+
+    </div><!-- /right-panel -->
+
+    <!-- PEF FRAME (left panel) -->
+    <iframe id="pef-frame" src="/simulator/index.html" title="Genesys PEF Widget"></iframe>
+
+    <script>
+    // ──────────────────────────────────────────────────────────────
+    // EVENT MESSAGES (same payloads as simulator-ui.html)
+    // ──────────────────────────────────────────────────────────────
+    const EVENT_MESSAGES = {
+        voiceIn: {"EVENT":"EventEstablished","MediaType":"voice","CallType":"Inbound","ANI":"+393349089191","DNIS":"+13172140816","InteractionID":"a1db7a49-b6e8-4f00-8958-6aa3bef294dc","ConnectionID":"a1db7a49-b6e8-4f00-8958-6aa3bef294dc","name":"Mobile Number, Italy","remoteName":"Mobile Number, Italy","recordingState":"active","attachdata":{"interfaceid":7},"SourceMsg":{"id":"a1db7a49-b6e8-4f00-8958-6aa3bef294dc","queueName":"dirende_queue","ani":"+393349089191","direction":"Inbound","startTime":"2025-01-20T08:35:03.204Z"}},
+        voiceMarkDone: {"EVENT":"EventMarkDone","MediaType":"voice","CallType":"Inbound","ANI":"+393349089191","DNIS":"+13172140816","InteractionID":"a1db7a49-b6e8-4f00-8958-6aa3bef294dc","Duration":125,"attachdata":{"activity_id":"1ee76bc3879b3e90d8160f6d0ebb35bb","activity_table":"interaction","contact_id":"217d942b479f9e50c74af442736d4396","contact_table":"sys_user"},"SourceMsg":{"id":"a1db7a49-b6e8-4f00-8958-6aa3bef294dc","queueName":"dirende_queue","interactionDurationSeconds":125,"disposition":"Resolved","direction":"Inbound"}},
+        emailIn: {"EVENT":"EmailEventEstablished","MediaType":"email","CallType":"Inbound","ANI":"nicola.dirende@softphone.it","DNIS":"dirende@softphonecti.mypurecloud.com","InteractionID":"5441d66b-b9ce-42a1-ba9e-02ecbfee79d5","ConnectionID":"5441d66b-b9ce-42a1-ba9e-02ecbfee79d5","name":"Nicola Di Rende","attachdata":{"email":"nicola.dirende@softphone.it"},"SourceMsg":{"id":"5441d66b-b9ce-42a1-ba9e-02ecbfee79d5","queueName":"dirende_queue","emailSubject":"Richiesta apertura nuovo caso","direction":"Inbound"}},
+        chatIn: {"EVENT":"WebmessagingEventEstablishedInbound","MediaType":"webmessaging","CallType":"Inbound","ANI":"","InteractionID":"41e4e0cb-14e9-4a03-a771-25c822bbf331","ConnectionID":"41e4e0cb-14e9-4a03-a771-25c822bbf331","attachdata":{"email":"mario.rossi@azienda.it","emailaddress":"mario.rossi@azienda.it"},"SourceMsg":{"id":"41e4e0cb-14e9-4a03-a771-25c822bbf331","queueName":"dirende_queue","direction":"Inbound"}},
+        waIn: {"EVENT":"WhatsappEventEstablished","MediaType":"whatsapp","CallType":"Inbound","ANI":"393349089191","InteractionID":"821536ca-94e9-4b12-90e4-1f227855f3d0","ConnectionID":"821536ca-94e9-4b12-90e4-1f227855f3d0","name":"Ibrahim Taha","attachdata":{},"SourceMsg":{"id":"821536ca-94e9-4b12-90e4-1f227855f3d0","queueName":"Other_Enquiry","direction":"Inbound"}}
+    };
+
+    // ──────────────────────────────────────────────────────────────
+    // MOCK DATA
+    // ──────────────────────────────────────────────────────────────
+    const MOCK_HISTORY = {
+        "+393349089191": [
+            { date:"2026-03-05 09:12", channel:"voice",    duration:"4m 32s", wrapup:"Resolved" },
+            { date:"2026-02-28 14:45", channel:"email",    duration:"—",      wrapup:"Follow-up" },
+            { date:"2026-02-15 11:03", channel:"chat",     duration:"12m 01s",wrapup:"Resolved" },
+            { date:"2026-01-30 08:55", channel:"voice",    duration:"1m 47s", wrapup:"Abandoned" },
+        ],
+        "nicola.dirende@softphone.it": [
+            { date:"2026-03-01 10:30", channel:"email",    duration:"—",      wrapup:"Resolved" },
+            { date:"2026-02-20 16:22", channel:"voice",    duration:"6m 15s", wrapup:"Callback" },
+        ],
+        "mario.rossi@azienda.it": [
+            { date:"2026-03-06 13:10", channel:"chat",     duration:"8m 42s", wrapup:"Escalated" },
+        ],
+        "393349089191": [
+            { date:"2026-02-10 07:07", channel:"whatsapp", duration:"20m",    wrapup:"Other_Enquiry" },
+            { date:"2026-01-22 09:30", channel:"voice",    duration:"3m 11s", wrapup:"Resolved" },
+        ]
+    };
+
+    const MOCK_CASES = {
+        "+393349089191": [
+            { number:"INC0010234", subject:"Problema connessione VPN aziendale", state:"open",     date:"2026-03-01", agent:"Marco Bianchi" },
+            { number:"INC0009876", subject:"Richiesta reset password AD",        state:"resolved", date:"2026-02-14", agent:"Laura Verdi" },
+        ],
+        "nicola.dirende@softphone.it": [
+            { number:"INC0010198", subject:"Email non ricevute dominio esterno", state:"progress", date:"2026-03-03", agent:"Marco Bianchi" },
+        ],
+        "mario.rossi@azienda.it": [
+            { number:"INC0010301", subject:"Accesso negato portale clienti",     state:"open",     date:"2026-03-06", agent:"Non assegnato" },
+        ],
+        "393349089191": [
+            { number:"INC0009100", subject:"Richiesta informazioni prodotto X",  state:"resolved", date:"2026-01-23", agent:"Giulia Neri" },
+        ]
+    };
+
+    const MOCK_TRANSCRIPTS = {
+        "+393349089191": {
+            name: "Nicola Di Rende", contact: "+393349089191",
+            requestType: "existing", caseRef: "INC0010234",
+            excerpt: "Cliente: Buongiorno, chiamo per il problema del VPN...\nAgente: Buongiorno, mi può dare il numero del caso?\nCliente: Sì, è INC0010234.\nAgente: Trovato, sto verificando lo stato..."
+        },
+        "nicola.dirende@softphone.it": {
+            name: "Nicola Di Rende", contact: "nicola.dirende@softphone.it",
+            requestType: "new", caseRef: null,
+            excerpt: "Email: Oggetto: Richiesta apertura nuovo caso\nCorpo: Gentili, vorrei aprire un caso per un problema con le email..."
+        },
+        "mario.rossi@azienda.it": {
+            name: "Mario Rossi", contact: "mario.rossi@azienda.it",
+            requestType: "new", caseRef: null,
+            excerpt: "Cliente: Non riesco ad accedere al portale clienti da ieri...\nAgente: Capito, le do supporto subito."
+        },
+        "393349089191": {
+            name: "Ibrahim Taha", contact: "393349089191",
+            requestType: "existing", caseRef: "INC0009100",
+            excerpt: "Cliente: Vorrei un aggiornamento sul mio caso INC0009100.\nAgente: Certo, è stato risolto il 23 gennaio. Le invio il riepilogo."
+        }
+    };
+
+    // ──────────────────────────────────────────────────────────────
+    // STATE
+    // ──────────────────────────────────────────────────────────────
+    let currentInteractionId = null;
+    let backendEnabled = false;
+
+    // ──────────────────────────────────────────────────────────────
+    // LOGGING
+    // ──────────────────────────────────────────────────────────────
+    function mcpLog(msg, type = 'suc') {
+        const panel = document.getElementById('logPanel');
+        const el = document.createElement('div');
+        el.className = 'log-entry ' + type;
+        el.textContent = `[${new Date().toLocaleTimeString('it-IT')}] ${msg}`;
+        panel.appendChild(el);
+        panel.scrollTop = panel.scrollHeight;
+    }
+    const _ce = console.error.bind(console);
+    const _cw = console.warn.bind(console);
+    console.error = (...a) => { _ce(...a); mcpLog('ERR: ' + a.map(x => x?.message||String(x)).join(' '), 'err'); };
+    console.warn  = (...a) => { _cw(...a); mcpLog('WRN: ' + a.map(x => String(x)).join(' '), 'warn'); };
+
+    // ──────────────────────────────────────────────────────────────
+    // MCP-CRM EVENT BUS — called by ServiceNow_iwsscript.js hooks
+    // ──────────────────────────────────────────────────────────────
+    window.mcpCrm = {
+        onInteractionStarted(message, contactInfo) {
+            currentInteractionId = message.InteractionID;
+            document.getElementById('connLed').className = 'status-led active';
+            document.getElementById('connStatus').textContent = `${message.MediaType?.toUpperCase()} ${message.CallType} — ${contactInfo || 'N/A'}`;
+            setBadge('intel', 'live', 'LIVE');
+            setBadge('history', 'live', 'CARICAMENTO');
+            setBadge('snow', 'live', 'CARICAMENTO');
+            document.getElementById('card-intel').classList.add('active-card');
+            showLoading('body-intel', 'Analisi transcript in corso...');
+            showLoading('body-history', 'Caricamento da Genesys Cloud API...');
+            showLoading('body-snow', 'Ricerca casi su ServiceNow...');
+
+            if (backendEnabled) {
+                fetchAllData(contactInfo, message);
+            } else {
+                setTimeout(() => renderIntel(contactInfo), 1200);
+                setTimeout(() => renderHistory(contactInfo), 1600);
+                setTimeout(() => renderCases(contactInfo), 2000);
+            }
+        },
+        onInteractionEnded(message) {
+            document.getElementById('connLed').className = 'status-led connected';
+            document.getElementById('connStatus').textContent = 'ACW — ' + (message.SourceMsg?.disposition || '');
+            setBadge('intel', 'ok', 'DONE');
+            setBadge('history', 'ok', 'OK');
+            setBadge('snow', 'ok', 'OK');
+            document.getElementById('card-intel').classList.remove('active-card');
+            mcpLog(`Interazione terminata (${message.Duration || 0}s) — wrapup: ${message.SourceMsg?.disposition || '-'}`, 'info');
+        }
+    };
+
+    // ──────────────────────────────────────────────────────────────
+    // RENDER FUNCTIONS
+    // ──────────────────────────────────────────────────────────────
+    function renderIntel(contactInfo) {
+        const data = MOCK_TRANSCRIPTS[contactInfo] || {
+            name: 'Non identificato', contact: contactInfo,
+            requestType: 'unknown', caseRef: null,
+            excerpt: '(transcript in elaborazione...)'
+        };
+        setBadge('intel', 'ok', 'OK');
+        const requestTag = data.requestType === 'new'
+            ? '<span class="tag new-case">&#43; Nuovo Case</span>'
+            : data.requestType === 'existing'
+                ? `<span class="tag existing">&#128203; ${data.caseRef || 'Case esistente'}</span>`
+                : '<span class="tag">Indeterminato</span>';
+
+        document.getElementById('body-intel').innerHTML = `
+            <div class="intel-grid">
+                <div class="intel-field">
+                    <div class="intel-label">Nome Cliente</div>
+                    <div class="intel-value">${data.name}</div>
+                </div>
+                <div class="intel-field">
+                    <div class="intel-label">Contatto</div>
+                    <div class="intel-value">${data.contact}</div>
+                </div>
+                <div class="intel-field full">
+                    <div class="intel-label">Tipo Richiesta</div>
+                    <div class="intel-value">${requestTag}</div>
+                </div>
+                <div class="intel-field full">
+                    <div class="intel-label">Estratto Transcript</div>
+                    <div class="transcript-excerpt">${data.excerpt}</div>
+                </div>
+            </div>`;
+        mcpLog(`Customer identified: ${data.name} | ${data.contact} | ${data.requestType}`, 'api');
+    }
+
+    function renderHistory(contactInfo) {
+        const rows = MOCK_HISTORY[contactInfo];
+        setBadge('history', rows ? 'ok' : 'idle', rows ? `${rows.length} INT.` : 'NO DATA');
+        if (!rows || rows.length === 0) {
+            document.getElementById('body-history').innerHTML = `<div class="empty-state"><div class="empty-icon">&#128202;</div>Nessuna interazione storica trovata</div>`;
+            return;
+        }
+        const channelIcon = { voice:'&#128222;', email:'&#9993;', chat:'&#128172;', whatsapp:'&#128241;' };
+        const trs = rows.map(r => `
+            <tr>
+                <td>${r.date}</td>
+                <td><span class="media-badge ${r.channel}">${channelIcon[r.channel]||''} ${r.channel}</span></td>
+                <td>${r.duration}</td>
+                <td><span class="wrapup-chip">${r.wrapup}</span></td>
+            </tr>`).join('');
+        document.getElementById('body-history').innerHTML = `
+            <table class="hist-table">
+                <thead><tr><th>Data/Ora</th><th>Canale</th><th>Durata</th><th>Wrapup</th></tr></thead>
+                <tbody>${trs}</tbody>
+            </table>`;
+        mcpLog(`Genesys history: ${rows.length} interazioni trovate per ${contactInfo}`, 'api');
+    }
+
+    function renderCases(contactInfo) {
+        const cases = MOCK_CASES[contactInfo];
+        setBadge('snow', cases ? 'ok' : 'idle', cases ? `${cases.length} CASE` : 'NO DATA');
+        const stateLabel = { open:'open', progress:'progress', resolved:'resolved' };
+
+        let html = cases && cases.length > 0
+            ? cases.map(c => `
+                <div class="case-card">
+                    <div class="case-top">
+                        <div>
+                            <div class="case-number">${c.number}</div>
+                            <div class="case-subject">${c.subject}</div>
+                        </div>
+                        <span class="case-state ${stateLabel[c.state]||'open'}">${c.state.toUpperCase()}</span>
+                    </div>
+                    <div class="case-meta">
+                        <span>&#128197; ${c.date}</span>
+                        <span>&#128101; ${c.agent}</span>
+                    </div>
+                </div>`).join('')
+            : `<div class="empty-state"><div class="empty-icon">&#127760;</div>Nessun caso trovato per questo cliente</div>`;
+
+        html += `<button class="btn-create-case" onclick="createNewCase('${contactInfo}')">&#43; Crea nuovo Case su ServiceNow</button>`;
+        document.getElementById('body-snow').innerHTML = html;
+        if (cases) mcpLog(`ServiceNow: ${cases.length} casi trovati per ${contactInfo}`, 'api');
+        else mcpLog(`ServiceNow: nessun caso per ${contactInfo}`, 'warn');
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // BACKEND API CALLS (quando backend è attivo)
+    // ──────────────────────────────────────────────────────────────
+    async function fetchAllData(contactInfo, message) {
+        try {
+            mcpLog(`Backend: avvio fetch per ${contactInfo}...`, 'info');
+            const [intelRes, histRes, casesRes] = await Promise.allSettled([
+                fetch(`/api/transcript/analyze?contactInfo=${encodeURIComponent(contactInfo)}&interactionId=${message.InteractionID}`).then(r => r.json()),
+                fetch(`/api/genesys/history?contactInfo=${encodeURIComponent(contactInfo)}`).then(r => r.json()),
+                fetch(`/api/servicenow/cases?contactInfo=${encodeURIComponent(contactInfo)}`).then(r => r.json())
+            ]);
+            if (intelRes.status === 'fulfilled') renderIntelFromApi(intelRes.value);
+            else { mcpLog('Transcript API error: ' + intelRes.reason, 'err'); renderIntel(contactInfo); }
+            if (histRes.status === 'fulfilled') renderHistoryFromApi(histRes.value);
+            else { mcpLog('Genesys history API error: ' + histRes.reason, 'err'); renderHistory(contactInfo); }
+            if (casesRes.status === 'fulfilled') renderCasesFromApi(casesRes.value, contactInfo);
+            else { mcpLog('ServiceNow cases API error: ' + casesRes.reason, 'err'); renderCases(contactInfo); }
+        } catch(e) {
+            mcpLog('fetchAllData error: ' + e.message, 'err');
+            renderIntel(contactInfo); renderHistory(contactInfo); renderCases(contactInfo);
+        }
+    }
+
+    function renderIntelFromApi(data) {
+        setBadge('intel', 'ok', 'OK');
+        const requestTag = data.requestType === 'new_case'
+            ? '<span class="tag new-case">&#43; Nuovo Case</span>'
+            : data.caseNumber
+                ? `<span class="tag existing">&#128203; ${data.caseNumber}</span>`
+                : '<span class="tag">Indeterminato</span>';
+        document.getElementById('body-intel').innerHTML = `
+            <div class="intel-grid">
+                <div class="intel-field"><div class="intel-label">Nome Cliente</div><div class="intel-value">${data.customerName || '-'}</div></div>
+                <div class="intel-field"><div class="intel-label">Contatto</div><div class="intel-value">${data.contact || '-'}</div></div>
+                <div class="intel-field full"><div class="intel-label">Tipo Richiesta</div><div class="intel-value">${requestTag}</div></div>
+                <div class="intel-field full"><div class="intel-label">Estratto Transcript</div><div class="transcript-excerpt">${data.excerpt || '-'}</div></div>
+            </div>`;
+        mcpLog(`[API] Customer: ${data.customerName} | ${data.requestType}`, 'api');
+    }
+
+    function renderHistoryFromApi(data) {
+        const rows = data.interactions || [];
+        setBadge('history', rows.length > 0 ? 'ok' : 'idle', `${rows.length} INT.`);
+        if (!rows.length) {
+            document.getElementById('body-history').innerHTML = `<div class="empty-state"><div class="empty-icon">&#128202;</div>Nessuna interazione storica</div>`;
+            return;
+        }
+        const channelIcon = { voice:'&#128222;', email:'&#9993;', chat:'&#128172;', whatsapp:'&#128241;' };
+        const trs = rows.map(r => `<tr><td>${r.startTime}</td><td><span class="media-badge ${r.mediaType}">${channelIcon[r.mediaType]||''} ${r.mediaType}</span></td><td>${r.duration}</td><td><span class="wrapup-chip">${r.wrapup||'-'}</span></td></tr>`).join('');
+        document.getElementById('body-history').innerHTML = `<table class="hist-table"><thead><tr><th>Data/Ora</th><th>Canale</th><th>Durata</th><th>Wrapup</th></tr></thead><tbody>${trs}</tbody></table>`;
+        mcpLog(`[API] Genesys history: ${rows.length} interazioni`, 'api');
+    }
+
+    function renderCasesFromApi(data, contactInfo) {
+        const cases = data.cases || [];
+        setBadge('snow', cases.length > 0 ? 'ok' : 'idle', `${cases.length} CASE`);
+        let html = cases.length > 0
+            ? cases.map(c => `<div class="case-card"><div class="case-top"><div><div class="case-number">${c.number}</div><div class="case-subject">${c.subject}</div></div><span class="case-state ${c.state === 'Resolved' ? 'resolved' : c.state === 'In Progress' ? 'progress' : 'open'}">${c.state}</span></div><div class="case-meta"><span>&#128197; ${c.openedAt}</span><span>&#128101; ${c.assignedTo || 'N/A'}</span></div></div>`).join('')
+            : `<div class="empty-state"><div class="empty-icon">&#127760;</div>Nessun caso trovato</div>`;
+        html += `<button class="btn-create-case" onclick="createNewCase('${contactInfo}')">&#43; Crea nuovo Case su ServiceNow</button>`;
+        document.getElementById('body-snow').innerHTML = html;
+        mcpLog(`[API] ServiceNow: ${cases.length} casi`, 'api');
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // HELPERS
+    // ──────────────────────────────────────────────────────────────
+    function showLoading(id, msg) {
+        document.getElementById(id).innerHTML = `<div class="loading-row"><div class="spinner"></div>${msg}</div>`;
+    }
+    function setBadge(card, type, text) {
+        const el = document.getElementById('badge-' + card);
+        el.className = 'card-badge ' + type;
+        el.textContent = text;
+    }
+
+    function clearAll() {
+        currentInteractionId = null;
+        ['intel','history','snow'].forEach(c => {
+            setBadge(c, 'idle', 'IDLE');
+            document.getElementById('card-' + c).classList.remove('active-card');
+        });
+        document.getElementById('body-intel').innerHTML = `<div class="empty-state"><div class="empty-icon">&#127908;</div>In attesa di una interazione...</div>`;
+        document.getElementById('body-history').innerHTML = `<div class="empty-state"><div class="empty-icon">&#128202;</div>Nessuna interazione storica disponibile</div>`;
+        document.getElementById('body-snow').innerHTML = `<div class="empty-state"><div class="empty-icon">&#127760;</div>Nessun case disponibile</div>`;
+        document.getElementById('connLed').className = 'status-led connected';
+        document.getElementById('connStatus').textContent = 'Connesso';
+        mcpLog('Reset pannello MCP-CRM', 'info');
+    }
+
+    function toggleBackend() {
+        backendEnabled = !backendEnabled;
+        document.getElementById('backendStatus').textContent = backendEnabled ? 'ON' : 'OFF';
+        document.getElementById('backendBtn').style.borderColor = backendEnabled ? 'var(--ok)' : '';
+        document.getElementById('backendBtn').style.color = backendEnabled ? 'var(--ok)' : '';
+        mcpLog(`Backend API ${backendEnabled ? 'ATTIVATO' : 'DISATTIVATO'} (mock data: ${!backendEnabled})`, 'info');
+    }
+
+    async function createNewCase(contactInfo) {
+        mcpLog(`Creazione nuovo caso ServiceNow per ${contactInfo}...`, 'info');
+        if (backendEnabled) {
+            try {
+                const res = await fetch('/api/servicenow/cases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contactInfo, interactionId: currentInteractionId, short_description: 'Case creato da MCP-CRM Integration' })
+                });
+                const data = await res.json();
+                mcpLog(`[API] Caso creato: ${data.number}`, 'suc');
+                renderCasesFromApi({ cases: [{ number: data.number, subject: data.short_description, state: 'New', openedAt: new Date().toLocaleDateString('it-IT'), assignedTo: 'Non assegnato' }] }, contactInfo);
+            } catch(e) {
+                mcpLog('Errore creazione caso: ' + e.message, 'err');
+            }
+        } else {
+            const fakeNum = 'INC' + (10400 + Math.floor(Math.random() * 100)).toString().padStart(7,'0');
+            mcpLog(`[MOCK] Caso creato: ${fakeNum}`, 'suc');
+            const body = document.getElementById('body-snow').innerHTML;
+            const newCard = `<div class="case-card"><div class="case-top"><div><div class="case-number">${fakeNum}</div><div class="case-subject">Case creato da MCP-CRM Integration</div></div><span class="case-state open">NEW</span></div><div class="case-meta"><span>&#128197; ${new Date().toLocaleDateString('it-IT')}</span><span>&#128101; Non assegnato</span></div></div>`;
+            document.getElementById('body-snow').innerHTML = newCard + body;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // SIMULATION — fire event + update MCP-CRM panel
+    // ──────────────────────────────────────────────────────────────
+    async function simEvent(key) {
+        const msg = EVENT_MESSAGES[key];
+        if (!msg) return;
+        mcpLog(`→ Simulazione: ${msg.EVENT} | ID:${msg.InteractionID?.substring(0,8)}...`, 'info');
+
+        // Extract contact info (same logic as ServiceNow_iwsscript.js)
+        let contactInfo = '';
+        switch (msg.MediaType) {
+            case 'voice':
+                contactInfo = msg.CallType === 'Outbound' ? msg.DNIS : (msg.ANI?.replace('tel:','') || '');
+                break;
+            case 'email':
+                contactInfo = msg.ANI;
+                break;
+            case 'webmessaging':
+            case 'chat':
+                contactInfo = msg.attachdata?.['context.email'] || msg.attachdata?.email || msg.attachdata?.emailaddress || '';
+                break;
+            case 'whatsapp':
+            case 'sms':
+                contactInfo = msg.ANI?.replace('tel:','') || '';
+                break;
+            default:
+                contactInfo = msg.ANI || '';
+        }
+
+        // Update MCP-CRM panel
+        if (msg.EVENT.includes('MarkDone')) {
+            window.mcpCrm.onInteractionEnded(msg);
+        } else {
+            window.mcpCrm.onInteractionStarted(msg, contactInfo);
+        }
+
+        // Fire PEF event handler inside the index.html iframe
+        try {
+            const iframeWin = document.getElementById('pef-frame')?.contentWindow;
+            if (iframeWin) {
+                const handlerMap = {
+                    voiceIn:       'onEventEstablishedInbound',
+                    voiceMarkDone: 'onEventMarkDoneInbound',
+                    emailIn:       'onEmailEventEstablishedInbound',
+                    chatIn:        'onWebmessagingEventEstablishedInbound',
+                    waIn:          'onWhatsappEventEstablishedInbound'
+                };
+                const fnName = handlerMap[key];
+                if (fnName && typeof iframeWin[fnName] === 'function') {
+                    await iframeWin[fnName](msg);
+                }
+            }
+        } catch(e) {
+            mcpLog('PEF handler: ' + e.message, 'warn');
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // INIT
+    // ──────────────────────────────────────────────────────────────
+
+    // Expose mcpCrm to iframe (same origin) via parent reference
+    // snutil.js inside the iframe calls: window.parent.mcpCrm.onInteractionStarted(...)
+    // Nothing to do here — window.mcpCrm is already on this page's window.
+
+    // Listen for events posted by the iframe via postMessage (cross-context safe)
+    window.addEventListener('message', function(ev) {
+        if (ev.data?.type === 'pef-authenticated') {
+            document.getElementById('connLed').className = 'status-led connected';
+            document.getElementById('connStatus').textContent = 'Connesso';
+            mcpLog('PEF autenticato con Genesys Cloud', 'suc');
+        }
+    });
+
+    $(document).ready(function() {
+        document.getElementById('connLed').className = 'status-led';
+        document.getElementById('connStatus').textContent = 'In attesa...';
+        mcpLog('MCP-CRM Integration pronto. PEF iframe in caricamento...', 'info');
+
+        document.getElementById('pef-frame').addEventListener('load', function() {
+            mcpLog('index.html caricato nel frame PEF', 'info');
+        });
+    });
+    </script>
+
+</body>
+</html>

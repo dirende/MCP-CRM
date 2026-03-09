@@ -1,0 +1,46 @@
+Sei uno sviluppatore di integrazioni CRM con il framework di Genesys Pure embeddable framework.
+Nella cartella simulator c'è un esempio di integrazione del framework Genesys.
+Analizza il progetto e il modello di integrazione e le logiche di generazione eventi.
+Questo simulatore permette di ricevere degli eventi dal framework Genesys e gestire i vari canali configurati su Genesys: voce, email e webmessagiong. Al fondo ddi questo file trovi un link che ti spiega come funziona l'integrazione del PEF.
+Il progetto contiene anche una integrazione con una smartUI che permette di visualizzare ad esempio al suo interno una url esterna. 
+Partendo da questo esempio, mi servirebbe che tu realizzassi una integrazione che permetta di costrutire una smartUI (frame che si integra nel widget) che chiameremo "MCP-CRM Integration", che faccia queste operazioni:
+1. tramite le API di Genesys, la smartUI deve mettersi in ascolto sul transcript della conversazione della chat di Genesys, ed estrarre da essa il nome del cliente, il suo numero di telefono o email e il tipo di richiesta che vuole effettuare: aprire un nuovo case, gestire un case vecchio e quindi collezionare il numero del case o la data in cui e' stato aperto. Ti forniro i dettagli di accessi e link di seguito 
+2. tramite le API Genesys collezionare le ultime interazioni gestite da questo cliente sulla piattaforma Genesys basate sul numero telefonico o email del cliente, info come media type, data e wraup-up code usato. Ti forniro i dettagli di accessi e link di seguito
+3. tramite le API del servicenow, creare nuovo case o estrai case associati al cliente ancora aperti fornendo, data, soggetto del case e agente associato e poi fare screen pop della url del nuovo case o vecchio.
+
+Verifica se esistano gia dei progetti GIT che permettano di avere libreria di API per ServiceNow e Genesys
+Crea un agente specializzato per l'accesso a Genesys e uso delle sue API
+Crea un agente specializzto su ServiceNow che sappia usare le API per fare qury di ricerca o creazione record
+Crea un agente specializzato nella ricerca su internet di contenuti
+Costruisci gli agenti secondo le liee guida di anthrorpic.
+
+Puoi usare il mio docker se ti serve un server su cui deployare applicazione e puoi costruire il container se necessario.
+Procedi in autonomia e fammi sapere se hai bisogno di chiarimenti.
+
+Utilizza MCP Google DevTools per poter fare le tue simulazioni via web. 
+
+Non chiedermi conferme sui comandi da eseguire, hai massimo accesso.
+Fai test preliminari per verificare corretto accesso ad API di Servicenow e Genesys.
+Procedi con i test costruendoti un tipo di conversazione per ogni scenario che userai per dare in pasto agli agenti per Genesys e Servicenow per estrarre contenuti. Reitera processo per verificare tutte le funzionalita e fai i fix.
+Fai la messa in produzione sul mio docker.
+
+
+Informazioni Accessi e Link risorse
+Genesys
+Link per API Genesys: https://developer.genesys.cloud/devapps/api-explorer-standalone
+https://mypurecloud.github.io/platform-client-sdk-javascript
+
+Per gli accessi a Genesys per visualizzare contenuti puoi usare le seguenti credenziali:
+    login: nicola.dirende@softphone.it
+    psw: Nerone.71
+    organization name: softphoneit
+Per l'utilizzo delle API
+client id: 6fa53f73-6ad4-473f-b492-c9cbae80be29
+client secret: vv0An5RENz3FfJd96XosqFLgLRFzANKXuyrMoOesSYE
+
+
+ServiceNow
+link instance: https://ven07529.service-now.com/
+client ID: 77835641066f4ebf92d8e8f39db47283
+client secret: P5,#<QJ|$D6FkOpOPT#X:s-pYSJhVSmd
+Redirect URL: http://localhost:5678/rest/oauth2-credential/callback

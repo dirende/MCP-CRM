@@ -1,0 +1,27 @@
+services:
+
+  # ── Backend API ─────────────────────────────────────────────────
+  # Express server: Genesys + ServiceNow + Claude AI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mcp-crm-backend
+    ports:
+      - "3000:3000"           # API accessible from browser at http://localhost:3000
+    env_file:
+      - ./backend/.env        # credentials loaded at runtime, not baked into the image
+    restart: unless-stopped
+
+  # ── Frontend Static Server ──────────────────────────────────────
+  # Serves demo.html, lib/, js/ on port 8080
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-crm-frontend
+    ports:
+      - "8080:8080"           # UI accessible at http://localhost:8080
+    depends_on:
+      - backend
+    restart: unless-stopped

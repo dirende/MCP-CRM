@@ -1,0 +1,162 @@
+.table-head tr th {
+  margin: 0;
+  background: #FFF;
+}
+.table-head tr {
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.table-body tr td {
+  margin: 0;
+  background: #f6f6f6;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
+.table-head {
+  border-bottom: 1px solid #ddd;
+  padding: 0 8px 5px 8px;
+}
+
+.table-footer {
+  border-top: 1px solid #ddd;
+  padding: 5px 8px 5px 8px;
+}
+
+.table-head tr th,
+.table-body tr td,
+.table-footer tr td{
+  border-bottom: 0px solid #ddd;
+}
+
+.table-body tr,
+.table-head tr,
+.table-footer tr {
+  vertical-align: initial;
+}
+
+.col_body, .col_head {
+  padding: 5px 0px !important;
+}
+
+.table {
+  background-color: white;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background-color: white;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.table-body {
+  background-color: #f6f6f6;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+  position: relative;
+  height: 100%;
+  flex: 1;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.table-head,
+.table-head tr,
+.table-head tr th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table-head {
+  display: flex !important;
+  flex-direction: column;
+}
+.table-head tr,
+.table-head tr th {
+  display: flex !important;
+  flex-direction: row;
+  flex: 1;
+}
+
+.table-body,
+.table-body tr,
+.table-body tr td{
+  display: flex !important;
+  box-sizing: border-box;
+  flex-direction: column;
+}
+
+
+.table-footer,
+.table-footer tr,
+.table-footer tr td{
+  display: flex !important;
+  box-sizing: border-box;
+}
+
+.table-footer{
+  flex-direction: column;
+}
+
+.table-footer tr td{
+  padding: 0;
+}
+
+
+.table-footer tr,
+.table-footer tr td{
+  flex-direction: row;
+  flex: 1;
+}
+
+.table-footer tr{
+  gap: 10px;
+}
+
+.table-body tr:has( > td > div.message-icon),
+.table-body tr td:has( > div.message-icon),
+.table-body tr:has( > td > div.loader),
+.table-body tr td:has( > div.loader),
+.table-body tr:has( > td > .fullscreen),
+.table-body tr td:has( > .fullscreen){
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0px !important;
+}
+
+.table-body:has( > tr > td > .fullscreen)::-webkit-scrollbar{
+  width: 0px !important;
+}
+
+.table-body tr:has( > td > div.back-button),
+.table-body tr td:has( > div.back-button){
+  height: 100%;
+  width: 100%;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  box-sizing: border-box;
+}
+
+.table-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.table-body::-webkit-scrollbar-thumb {
+  background: #7272726a;
+  border: 0px none;
+  border-radius: 50px;
+}
+
+.table-body::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+  border-radius: 50px;
+}
+
+.table-body::-webkit-scrollbar-corner {
+  background-color: transparent;
+}

@@ -1,0 +1,68 @@
+form {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.mycontainer>div {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.mycontainer>div>span {
+    font-weight: bold;
+}
+
+.mycontainer>div>label {
+    color: black;
+    margin-left: 15px;
+}
+
+.mycontainer {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    padding: 10px;
+}
+
+img {
+    width: 100px;
+    height: 60px;
+}
+
+.header {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.header>img,
+.header>h5 {
+    margin: auto;
+}
+
+.commands {
+    display: flex;
+    flex-direction: column;
+}
+
+#rootsmartui {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+}
+
+.attachdataView {
+    color: red!important;
+}
+
+.hidden{
+    display : none;
+}
+
+.mytextview{
+    color:red;
+    text-align: right;
+    flex: 1;
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+  <div id="smartui-embedcustomurl-123123"></div>
+  
+  <script>
+    setTimeout(() => {
+      start()
+    }, 500)
+
+    function start() {
+      var ctiMessage = {
+        InteractionID: "e1deefa3-a9df-4901-9e71-f1ae3679f2ca",
+        attachdata: { 
+          name: "name", 
+          surname: "surname2", 
+          email: "alessandro.casolla@softphone.it" 
+        }
+      }
+      var values = {
+        embeddedUrl:`https://apps.mypurecloud.com/directory/#/engage/admin/interactions/e1deefa3-a9df-4901-9e71-f1ae3679f2ca`
+      }
+      interactionViewInit(ctiMessage, values);
+    }
+
+  </script>
+</body>
+
+</html>
+<script>
+
+</script>
