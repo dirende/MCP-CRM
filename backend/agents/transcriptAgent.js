@@ -107,7 +107,11 @@ async function extractIntel(text, contactInfo) {
 
     } catch (e) {
         console.error('[TranscriptAgent] Claude error:', e.message);
-        return heuristicAnalysis(text, contactInfo); // graceful degradation
+        if (process.env.GEMINI_API_KEY) {
+            console.log('[TranscriptAgent] Claude failed — falling back to Gemini');
+            return geminiExtractIntel(text, contactInfo);
+        }
+        return heuristicAnalysis(text, contactInfo);
     }
 }
 
