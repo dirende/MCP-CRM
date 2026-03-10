@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { Stack } from '@mui/material';
 import { Params } from './models/interfaces/params';
 import { Logger } from './utils/Logger';
@@ -104,9 +104,30 @@ function App({ ctiMessage, params, id }: AppProps) {
     const { data: intel, loading: intelLoading, error: intelError } =
         useTranscriptAnalysis(interactionId, contactInfo, backendUrl, liveMessages.length);
 
+    // ── Intel update callback ─────────────────────────────────────
+    // Notify the host page whenever the AI analysis changes so it can
+    // read the current caseNumber for Mark Done / close-interaction.
+
+    useEffect(() => {
+        if (intel && params?.onIntelUpdate) {
+            params.onIntelUpdate(intel);
+        }
+    }, [intel]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Create Case handler ───────────────────────────────────────
+    // Wraps createCase to pass the AI requestSummary as short_description,
+    // and propagates the newly created caseNumber to the host via onIntelUpdate.
+
+    const handleCreateCase = useCallback(async (ci: string, iid: string) => {
+        await createCase(ci, iid, intel?.requestSummary || undefined, (newCase) => {
+            if (params?.onIntelUpdate && intel) {
+                params.onIntelUpdate({ ...intel, caseNumber: newCase.number });
+            }
+        });
+    }, [createCase, intel, params]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── onOpen Callback ───────────────────────────────────────────
 
-    // Notify the PEF host that the widget has opened (used for analytics/logging)
     const handleOpen = useCallback(() => {
         if (params?.onOpen) params.onOpen(params);
     }, [params]);
@@ -114,6 +135,21 @@ function App({ ctiMessage, params, id }: AppProps) {
     useEffect(() => {
         handleOpen();
     }, [handleOpen]);
+
+    // ── Interaction End Cleanup ───────────────────────────────────
+    // When the interaction ends (interactionId becomes empty), clear the
+    // backend message buffer so stale messages don't persist for the next session.
+
+    const prevInteractionId = useRef(interactionId);
+    useEffect(() => {
+        const prev = prevInteractionId.current;
+        prevInteractionId.current = interactionId;
+        // Interaction ended: had an ID, now empty
+        if (prev && !interactionId && backendUrl) {
+            fetch(`${backendUrl}/api/genesys/messages/${encodeURIComponent(prev)}`, { method: 'DELETE' })
+                .catch(() => {}); // fire-and-forget — non-critical
+        }
+    }, [interactionId, backendUrl]);
 
     // ── No Active Interaction ─────────────────────────────────────
 
@@ -125,7 +161,7 @@ function App({ ctiMessage, params, id }: AppProps) {
                 sx={{ background: '#0f172a', color: '#94a3b8', fontSize: '0.8rem', gap: 1 }}
             >
                 <span style={{ fontSize: '2rem', opacity: 0.3 }}>🎧</span>
-                <span>In attesa di interazione...</span>
+                <span>Waiting for interaction...</span>
             </Stack>
         );
     }
@@ -146,6 +182,7 @@ function App({ ctiMessage, params, id }: AppProps) {
                     backgroundColor={params?.headerColor     || '#0c1524'}
                     color={params?.headerTextColor || '#e2e8f0'}
                     onClose={params?.onClose}
+                    onReset={params?.onReset}
                 />
             )}
 
@@ -179,8 +216,17 @@ function App({ ctiMessage, params, id }: AppProps) {
                     error={intelError}
                     contactInfo={contactInfo}
                     mediaType={mediaType}
-                    caseUrl={cases?.find(c => c.number === intel?.caseNumber)?.url}
-                    onCreateCase={() => createCase(contactInfo, interactionId)}
+                    caseUrl={
+                        // 1. Exact match from ServiceNow list
+                        cases?.find(c => c.number === intel?.caseNumber)?.url ||
+                        // 2. AI-extracted case number → ServiceNow list search
+                        (intel?.caseNumber ? `https://ven07529.service-now.com/incident_list.do?sysparm_query=number=${intel.caseNumber}` : undefined) ||
+                        // 3. For close/existing/check with no case number → first open case in list
+                        ((intel?.requestType === 'close_case' || intel?.requestType === 'existing_case' || intel?.requestType === 'check_status') && cases?.[0]?.url
+                            ? cases[0].url
+                            : undefined)
+                    }
+                    onCreateCase={() => handleCreateCase(contactInfo, interactionId)}
                 />
 
                 {/* Interaction History — last 5 interactions from Genesys Cloud */}
@@ -198,7 +244,7 @@ function App({ ctiMessage, params, id }: AppProps) {
                     creating={creating}
                     contactInfo={contactInfo}
                     interactionId={interactionId}
-                    onCreateCase={createCase}
+                    onCreateCase={handleCreateCase}
                 />
             </Stack>
         </Stack>

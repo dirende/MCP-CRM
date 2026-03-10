@@ -5,9 +5,10 @@
  *
  * Exposes Genesys Cloud data to the SmartUI frontend.
  */
-const express = require('express');
-const router  = express.Router();
-const genesys = require('../agents/genesysAgent');
+const express              = require('express');
+const router               = express.Router();
+const genesys              = require('../agents/genesysAgent');
+const { clearBuffer }      = require('../agents/notificationsAgent');
 
 /**
  * GET /api/genesys/history?contactInfo=<phone|email>
@@ -67,6 +68,25 @@ router.get('/token', async (req, res) => {
     try {
         const token = await genesys.getToken();
         res.json({ ok: true, tokenPreview: token.slice(0, 20) + '...' });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
+
+/**
+ * DELETE /api/genesys/messages/:interactionId
+ *
+ * Clears the live message buffer for a completed interaction.
+ * Called by the SmartUI when the interaction ends (mark done / EventReleased).
+ * Prevents stale messages from appearing if the same agent picks up another
+ * interaction with the same conversation ID.
+ */
+router.delete('/messages/:interactionId', (req, res) => {
+    const { interactionId } = req.params;
+    try {
+        clearBuffer(interactionId);
+        console.log(`[genesys] Cleared message buffer for ${interactionId}`);
+        res.json({ ok: true });
     } catch (e) {
         res.status(500).json({ ok: false, error: e.message });
     }

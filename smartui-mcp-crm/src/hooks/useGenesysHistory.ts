@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GenesysInteraction } from '../models/interfaces/params';
 import { Logger } from '../utils/Logger';
+import { delay } from '../utils/delay';
 
 /**
  * useGenesysHistory — fetches the last 5 interactions for a contact from Genesys Cloud.
@@ -104,7 +105,3 @@ function mockHistory(contactInfo: string): GenesysInteraction[] {
     return MOCK[contactInfo] || [];
 }
 
-/** Simulates a network delay for mock data (milliseconds) */
-function delay(ms: number) {
-    return new Promise(r => setTimeout(r, ms));
-}

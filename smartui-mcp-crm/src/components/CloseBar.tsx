@@ -1,5 +1,6 @@
 import React, { MouseEventHandler } from 'react';
 import CloseIcon      from '@mui/icons-material/Close';
+import RefreshIcon    from '@mui/icons-material/Refresh';
 import Box            from '@mui/material/Box';
 import IconButton     from '@mui/material/IconButton';
 import Typography     from '@mui/material/Typography';
@@ -10,6 +11,7 @@ interface CloseBarProps {
     backgroundColor?: string;
     color?:           string;
     onClose?:         MouseEventHandler<HTMLButtonElement>;
+    onReset?:         () => void;
 }
 
 /**
@@ -26,7 +28,8 @@ export const CloseBar = ({
     title,
     backgroundColor = '#0c1524',
     color           = '#e2e8f0',
-    onClose
+    onClose,
+    onReset
 }: CloseBarProps) => {
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -71,6 +74,35 @@ export const CloseBar = ({
             }}>
                 {title}
             </Typography>
+
+            {/* Version badge */}
+            <Typography sx={{
+                fontSize:     '0.68rem',
+                color:        '#64748b',
+                fontWeight:   700,
+                marginRight:  '6px',
+                fontFamily:   'monospace'
+            }}>
+                v34
+            </Typography>
+
+            {/* Reset button — only shown when onReset is provided */}
+            {onReset && (
+                <IconButton
+                    size="small"
+                    onClick={onReset}
+                    aria-label="reset"
+                    title="↺ Reset"
+                    sx={{
+                        padding: '3px',
+                        color: '#64748b',
+                        marginRight: '2px',
+                        '&:hover': { backgroundColor: 'rgba(148,163,184,0.12)', color: '#94a3b8' }
+                    }}
+                >
+                    <RefreshIcon sx={{ fontSize: '16px' }} />
+                </IconButton>
+            )}
 
             {/* Close button — turns red on hover for clear affordance */}
             <IconButton

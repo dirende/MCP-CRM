@@ -65,8 +65,29 @@
             color: #475569;
         }
 
-        .badge-mock {
+        .btn-reset {
             margin-left: auto;
+            background: rgba(148,163,184,0.08);
+            border: 1px solid #334155;
+            color: #94a3b8;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-reset:hover {
+            background: rgba(239,68,68,0.12);
+            border-color: rgba(239,68,68,0.4);
+            color: #f87171;
+        }
+
+        .badge-mock {
             font-size: 0.6rem;
             font-weight: 700;
             padding: 3px 9px;
@@ -242,8 +263,8 @@
 
         /* ── LOG PANEL (right) ───────────────────── */
         .log-panel {
-            width: 240px;
-            min-width: 240px;
+            width: 280px;
+            min-width: 280px;
             background: #0a1525;
             border-left: 1px solid #1e3358;
             padding: 12px 10px;
@@ -254,6 +275,12 @@
             height: var(--widget-h);
         }
 
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         .log-title {
             font-size: 0.6rem;
             font-weight: 700;
@@ -261,6 +288,17 @@
             text-transform: uppercase;
             letter-spacing: 0.6px;
         }
+
+        .log-clear {
+            font-size: 0.55rem;
+            color: #334155;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .log-clear:hover { color: #94a3b8; background: #142033; }
 
         .log-box {
             flex: 1;
@@ -270,7 +308,7 @@
             padding: 7px;
             overflow-y: auto;
             font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 0.6rem;
+            font-size: 0.59rem;
             color: #56d364;
         }
 
@@ -284,23 +322,22 @@
 
         .l {
             margin-bottom: 2px;
-            line-height: 1.45;
+            line-height: 1.5;
+            word-break: break-all;
         }
 
-        .l.i {
-            color: #58a6ff;
-        }
+        .l.i  { color: #58a6ff; }
+        .l.w  { color: #e3b341; }
+        .l.e  { color: #f85149; font-weight: 700; }
+        .l.a  { color: #c792ea; }
+        .l.ok { color: #56d364; }
+        .l.sn { color: #fb923c; }   /* ServiceNow */
+        .l.ge { color: #38bdf8; }   /* Genesys    */
+        .l.ai { color: #a78bfa; }   /* AI/Gemini  */
 
-        .l.w {
-            color: #e3b341;
-        }
-
-        .l.e {
-            color: #f85149;
-        }
-
-        .l.a {
-            color: #c792ea;
+        .l-sep {
+            border-top: 1px solid #1e3358;
+            margin: 4px 0;
         }
 
         .sim-strip {
@@ -383,7 +420,7 @@
         <div class="logo">M</div>
         <h1>MCP-CRM SmartUI</h1>
         <small>Genesys PEF · React + TypeScript · mock mode</small>
-        <span class="badge-mock" id="badge-ok">✓ Bundle caricato</span>
+        <span class="badge-mock" id="badge-ok">✓ Bundle loaded</span>
         <span class="badge-err" id="badge-err">✗ Errore bundle</span>
     </div>
 
@@ -413,23 +450,25 @@
 
         <!-- LOG + SIMULAZIONE MOCK -->
         <div class="log-panel">
-            <div class="log-title">Console log</div>
+            <div class="log-header">
+                <div class="log-title">Integration Log</div>
+                <button class="log-clear" onclick="clearLog()">Pulisci</button>
+            </div>
             <div class="log-box" id="logBox">
-                <div class="l i">[demo] Caricamento bundle...</div>
+                <div class="l i">[demo] Loading bundle...</div>
             </div>
 
             <div class="sim-strip">
-                <div class="sim-label-sm">▶ Simula (mock, senza login)</div>
+                <div class="sim-label-sm">▶ Simulate (mock, no login)</div>
                 <button class="s-btn" id="btn-voice" onclick="mockScenario('voice')">📞 Voice IN</button>
                 <button class="s-btn" id="btn-email" onclick="mockScenario('email')">✉️ Email IN</button>
                 <button class="s-btn" id="btn-chat" onclick="mockScenario('chat')">💬 WebMessaging</button>
                 <button class="s-btn" id="btn-wa" onclick="mockScenario('wa')">📱 WhatsApp</button>
                 <button class="s-btn" id="btn-none" onclick="mockScenario('none')">⏸ Idle</button>
             </div>
-
             <div class="arch-card">
-                <strong>Flusso PEF reale</strong>
-                Genesys login → evento CTI<br>
+                <strong>Real PEF flow</strong>
+                Genesys login → CTI event<br>
                 → <code>mcpCrmAddView(msg)</code><br>
                 → <code>postMessage</code> → SmartUI
             </div>
@@ -438,7 +477,7 @@
     </div>
 
     <script>
-        // ── process shim (richiesto da React/MUI in bundle webpack mode:none) ──
+        // ── process shim ─────────────────────────────────────────────
         if (typeof window.process === 'undefined') {
             window.process = { env: { NODE_ENV: 'production' } };
         }
@@ -449,7 +488,7 @@
                 auth: { environment: 'mypurecloud.com' },
                 smartUi: { globalViews: [] }
             }),
-            sendCustomEvent: (name, data) => dlog('sendCustomEvent: ' + name, 'a'),
+            sendCustomEvent: (name, data) => dlog('CTI event: ' + name, 'a'),
             _iwsLayoutParams: { auth: { environment: 'mypurecloud.com' } }
         };
         window.enumCustomEventType = {
@@ -457,8 +496,12 @@
             ConnectorInteractionRemoved: 'ConnectorInteractionRemoved'
         };
         window.log = {
-            setLogLevel: () => { }, debug: () => { }, info: () => { }, warn: () => { }, error: () => { }
+            setLogLevel: () => {}, debug: () => {}, info: () => {}, warn: () => {}, error: () => {}
         };
+
+        // ── Stato interazione corrente ────────────────────────────────
+        // Traccia l'interazione attiva per il pulsante Mark Done
+        var _currentInteraction = null; // { interactionId, contactInfo }
 
         // ── Dati scenari mock ─────────────────────────────────────────
         const MSGS = {
@@ -492,12 +535,102 @@
         // ── Logging ──────────────────────────────────────────────────
         function dlog(msg, type) {
             const box = document.getElementById('logBox');
-            const el = document.createElement('div');
-            el.className = 'l' + (type ? ' ' + type : '');
-            el.textContent = '[' + new Date().toLocaleTimeString('it-IT') + '] ' + msg;
+            const el  = document.createElement('div');
+            el.className = 'l' + (type ? ' ' + type : ' ok');
+            el.textContent = new Date().toLocaleTimeString('it-IT') + ' ' + msg;
             box.appendChild(el);
             box.scrollTop = box.scrollHeight;
         }
+
+        function dlogSep() {
+            const box = document.getElementById('logBox');
+            const el  = document.createElement('div');
+            el.className = 'l-sep';
+            box.appendChild(el);
+        }
+
+        function clearLog() {
+            document.getElementById('logBox').innerHTML = '';
+        }
+
+        // ── Intercetta fetch → log API calls ─────────────────────────
+        const _origFetch = window.fetch;
+        window.fetch = function(url, opts) {
+            const urlStr = typeof url === 'string' ? url : url.toString();
+            if (!urlStr.includes('/api/')) return _origFetch.apply(this, arguments);
+
+            const method  = (opts?.method || 'GET').toUpperCase();
+            const path    = urlStr.replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+
+            let label, type;
+            if (path.startsWith('/api/transcript/')) {
+                label = '🤖 AI · analisi transcript';   type = 'ai';
+            } else if (path.includes('/api/genesys/history')) {
+                label = '⚡ Genesys · storico interazioni'; type = 'ge';
+            } else if (path.includes('/api/genesys/messages')) {
+                label = '⚡ Genesys · messaggi live';    type = 'ge';
+            } else if (path.startsWith('/api/servicenow/cases') && method === 'POST') {
+                label = '🎫 ServiceNow · crea case';     type = 'sn';
+            } else if (path.startsWith('/api/servicenow/cases')) {
+                label = '🎫 ServiceNow · ricerca case';  type = 'sn';
+            } else {
+                label = '🌐 API · ' + path;              type = 'i';
+            }
+
+            dlog(label + ' →', type);
+
+            const t0 = Date.now();
+            return _origFetch.apply(this, arguments)
+                .then(function(res) {
+                    const ms = Date.now() - t0;
+                    if (res.ok) {
+                        dlog('  ✓ ' + res.status + ' OK  (' + ms + 'ms)', type);
+                    } else {
+                        dlog('  ✗ HTTP ' + res.status + ' (' + ms + 'ms)', 'e');
+                    }
+                    return res;
+                })
+                .catch(function(err) {
+                    if (err.name === 'AbortError') return Promise.reject(err); // debounce cancel — silenzioso
+                    dlog('  ✗ ' + err.message, 'e');
+                    return Promise.reject(err);
+                });
+        };
+
+        // ── Intercetta console dal bundle SmartUI ────────────────────
+        // Cattura solo i log prefissati con [SmartUI-MCP-CRM] o con keyword chiave
+        const _origLog   = console.log.bind(console);
+        const _origWarn  = console.warn.bind(console);
+        const _origError = console.error.bind(console);
+
+        function bundleLogFilter(args) {
+            const txt = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+            // Filtra solo log rilevanti del bundle
+            if (txt.includes('[SmartUI-MCP-CRM]') || txt.includes('[TranscriptAgent]') ||
+                txt.includes('[GenesysAgent]') || txt.includes('[ServiceNow]')) {
+                return txt.replace(/\[SmartUI-MCP-CRM\]\[|\[TranscriptAgent\]\s*|[[\]]/g, '').trim().slice(0, 120);
+            }
+            return null;
+        }
+
+        console.log = function() {
+            _origLog.apply(console, arguments);
+            const filtered = bundleLogFilter(Array.from(arguments));
+            if (filtered) dlog(filtered, 'a');
+        };
+        console.warn = function() {
+            _origWarn.apply(console, arguments);
+            const filtered = bundleLogFilter(Array.from(arguments));
+            if (filtered) dlog('⚠ ' + filtered, 'w');
+        };
+        console.error = function() {
+            _origError.apply(console, arguments);
+            const txt = Array.from(arguments).map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            // Mostra tutti gli errori (anche quelli non prefissati)
+            if (txt.includes('[') || txt.includes('Error') || txt.includes('error')) {
+                dlog('✗ ' + txt.slice(0, 140), 'e');
+            }
+        };
 
         // ── LED stato ────────────────────────────────────────────────
         function setLed(state) {
@@ -512,8 +645,7 @@
         // ── Monta SmartUI ────────────────────────────────────────────
         function mountSmartUI(msg) {
             if (typeof window.interactionViewInit !== 'function') {
-                dlog('Bundle non ancora pronto!', 'e');
-                return;
+                dlog('Bundle not ready yet!', 'e'); return;
             }
             if (typeof window.mcpCrmUnmount === 'function') {
                 window.mcpCrmUnmount('smartui-mcp-crm');
@@ -525,66 +657,186 @@
                 title: 'MCP-CRM Integration',
                 backendUrl: 'http://localhost:3000',
                 headerHidden: false,
-                onClose: () => { setLed('idle'); dlog('View chiusa', 'w'); },
-                onOpen: () => { dlog('onOpen fired', 'a'); return Promise.resolve(true); }
+                onClose: () => { dlog('⏹ Interaction closed by agent', 'w'); resetWidget(); },
+                onOpen: () => { dlog('SmartUI opened', 'a'); return Promise.resolve(true); },
+                onReset: function() { resetWidget(); },
+                onIntelUpdate: function(intel) {
+                    if (!_currentInteraction || !intel) return;
+                    if (intel.caseNumber && intel.caseNumber !== _currentInteraction.caseNumber) {
+                        _currentInteraction.caseNumber = intel.caseNumber;
+                        var mdCase = document.getElementById('markdone-case');
+                        if (mdCase) mdCase.textContent = '· ' + intel.caseNumber;
+                        dlog('🎫 Case detected: ' + intel.caseNumber + ' (' + intel.requestType + ')', 'sn');
+                    }
+                }
             };
             window.interactionViewInit(msg || undefined, params, 'smartui-mcp-crm');
             if (msg) setTimeout(() => setLed('idle'), 3500);
         }
 
-        // ── Simulazione mock (pulsanti log panel) ─────────────────────
+        // ── Reset widget allo stato iniziale ──────────────────────────
+        function resetWidget() {
+            setLed('off');
+            _currentInteraction = null;
+            document.querySelectorAll('.s-btn').forEach(b => b.classList.remove('active'));
+            var mdBtn = document.getElementById('btn-markdone');
+            if (mdBtn) { mdBtn.disabled = true; }
+            var mdCase = document.getElementById('markdone-case');
+            if (mdCase) { mdCase.textContent = ''; }
+            mountSmartUI(null); // rimonta senza ctiMessage → "In attesa di interazione..."
+            dlog('Widget reset — waiting for interaction', 'ok');
+        }
+
+        // ── Mark Done — update ServiceNow ─────────────────────────────
+        function markDone() {
+            if (!_currentInteraction) { dlog('No active interaction', 'w'); return; }
+            var btn = document.getElementById('btn-markdone');
+            if (btn) btn.disabled = true;
+
+            var interactionId = _currentInteraction.interactionId;
+            var contactInfo   = _currentInteraction.contactInfo;
+            var caseNumber    = _currentInteraction.caseNumber || null;
+
+            dlogSep();
+            dlog('✔ Mark Done — updating ServiceNow...', 'sn');
+            dlog('  ID: ' + interactionId.slice(0, 18) + '…  case: ' + (caseNumber || 'auto'), 'sn');
+
+            _origFetch('http://localhost:3000/api/servicenow/close-interaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interactionId: interactionId, caseNumber: caseNumber, contactInfo: contactInfo })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    dlog('  ✓ ServiceNow updated: ' + data.caseNumber + ' — use ↺ Reset for new interaction', 'sn');
+                } else if (data.reason === 'case_not_found') {
+                    dlog('  ⚠ Case ' + (data.caseNumber || '?') + ' not found in ServiceNow', 'w');
+                    dlog('  → Use ↺ Reset for new interaction', 'i');
+                } else if (data.reason === 'no_case_number') {
+                    dlog('  ⚠ No case number detected in transcript — ServiceNow update skipped', 'w');
+                    dlog('  → Use ↺ Reset for new interaction', 'i');
+                } else {
+                    dlog('  ⚠ ServiceNow: ' + (data.reason || data.error || 'unknown error'), 'w');
+                    dlog('  → Use ↺ Reset for new interaction', 'i');
+                }
+            })
+            .catch(function(err) {
+                dlog('  ✗ Mark Done error: ' + err.message, 'e');
+                dlog('  → Use ↺ Reset for new interaction', 'i');
+            });
+        }
+
+        // ── Simulazione mock ──────────────────────────────────────────
         function mockScenario(key) {
             document.querySelectorAll('.s-btn').forEach(b => b.classList.remove('active'));
             const btn = document.getElementById('btn-' + key);
             if (btn) btn.classList.add('active');
 
             const msg = MSGS[key];
-            if (!msg) { setLed('off'); dlog('Scenario idle', 'w'); mountSmartUI(null); return; }
+            if (!msg) {
+                setLed('off');
+                _currentInteraction = null;
+                var mdBtn = document.getElementById('btn-markdone');
+                if (mdBtn) mdBtn.disabled = true;
+                var mdCase = document.getElementById('markdone-case');
+                if (mdCase) mdCase.textContent = '';
+                dlog('Scenario: idle', 'w');
+                mountSmartUI(null);
+                return;
+            }
+
+            // Track current interaction for Mark Done
+            const contactInfo = msg.ANI || msg.attachdata?.email || msg.attachdata?.emailaddress || '';
+            _currentInteraction = {
+                interactionId: msg.InteractionID,
+                contactInfo:   contactInfo,
+                caseNumber:    null // will be auto-detected by backend
+            };
+            var mdBtn = document.getElementById('btn-markdone');
+            if (mdBtn) mdBtn.disabled = false;
+            var mdCase = document.getElementById('markdone-case');
+            if (mdCase) mdCase.textContent = '';
+
+            dlogSep();
             setLed('active');
-            dlog('Mock scenario: ' + key + ' | ' + (msg.ANI || msg.attachdata?.email || ''), 'i');
+            dlog('▶ Scenario: ' + key.toUpperCase() + ' | ' + contactInfo, 'i');
+            dlog('  InteractionID: ' + msg.InteractionID.slice(0, 18) + '…', 'i');
             mountSmartUI(msg);
         }
 
-        // ── Bridge da PEF iframe (interazione reale Genesys) ─────────
+        // ── Bridge da PEF iframe (interazione reale) ──────────────────
         window.addEventListener('message', function (ev) {
             if (ev.data?.type === 'mcpCrmInteraction') {
-                const msg = ev.data.msg;
-                dlog('PEF → interazione reale: ' + msg.MediaType + ' | ' + (msg.ANI || ''), 'a');
+                const msg         = ev.data.msg;
+                const contactInfo = msg.ANI || msg.attachdata?.email || '';
+                dlogSep();
+                dlog('▶ Real PEF: ' + msg.MediaType + ' | ' + contactInfo, 'ge');
                 setLed('active');
+                _currentInteraction = { interactionId: msg.InteractionID, contactInfo, caseNumber: null };
+                var mdBtn = document.getElementById('btn-markdone');
+                if (mdBtn) mdBtn.disabled = false;
                 mountSmartUI(msg);
+            }
+            // Interaction ended (EventReleased from PEF) — log only, Mark Done is separate
+            if (ev.data?.type === 'mcpCrmInteractionEnded') {
+                const id = ev.data.interactionId || '';
+                dlogSep();
+                dlog('⏹ Call ended: ' + id.slice(0, 18) + '… (click Mark Done to close)', 'w');
+            }
+            // Mark Done from real PEF (if iwsscript.js sends it)
+            if (ev.data?.type === 'mcpCrmMarkDone') {
+                const id = ev.data.interactionId || '';
+                dlog('✔ Mark Done from PEF: ' + id.slice(0, 18) + '…', 'sn');
+                if (_currentInteraction) markDone();
+            }
+            // Risultato close-interaction da iwsscript.js (EventReleased reale)
+            if (ev.data?.type === 'mcpCrmCloseResult') {
+                const data = ev.data.data || {};
+                const id   = (ev.data.interactionId || '').slice(0, 18) + '…';
+                dlogSep();
+                if (data.ok) {
+                    dlog('✓ ServiceNow updated: ' + data.caseNumber + ' (' + id + ')', 'sn');
+                } else if (data.reason === 'case_not_found') {
+                    dlog('⚠ Case ' + (data.caseNumber || '?') + ' not found in ServiceNow (' + id + ')', 'w');
+                } else if (data.reason === 'no_case_number') {
+                    dlog('⚠ No case in transcript — update skipped (' + id + ')', 'w');
+                } else {
+                    dlog('⚠ close-interaction: ' + (data.reason || data.error || 'error') + ' (' + id + ')', 'w');
+                }
             }
         });
 
-        // Cattura errori runtime dal bundle
+        // Cattura errori runtime
         window.addEventListener('error', function (e) {
-            dlog('JS ERROR: ' + e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno, 'e');
+            dlog('✗ JS: ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno, 'e');
         });
 
-        // ── Bundle onload ────────────────────────────────────────────
+        // ── Bundle onload ─────────────────────────────────────────────
         function onBundleLoaded() {
-            dlog('File bundle ricevuto ✓', 'i');
+            dlog('Bundle loaded ✓', 'ok');
             setTimeout(function () {
                 if (typeof window.interactionViewInit === 'function') {
                     document.getElementById('badge-ok').style.display = '';
                     document.getElementById('badge-err').style.display = 'none';
-                    dlog('interactionViewInit OK ✓', 'i');
+                    dlog('interactionViewInit ready ✓', 'ok');
                     mockScenario('voice');
                 } else {
                     document.getElementById('badge-ok').style.display = 'none';
                     document.getElementById('badge-err').style.display = '';
-                    dlog('ERRORE: interactionViewInit non definito — apri F12 > Console', 'e');
+                    dlog('✗ interactionViewInit not defined', 'e');
                 }
             }, 300);
         }
         function onBundleError() {
             document.getElementById('badge-ok').style.display = 'none';
             document.getElementById('badge-err').style.display = '';
-            dlog('ERRORE: /lib/smartui-mcp-crm.js non caricabile', 'e');
+            dlog('✗ /lib/smartui-mcp-crm.js not loadable', 'e');
         }
     </script>
 
     <!-- Bundle SmartUI React -->
-    <script src="/lib/smartui-mcp-crm.js?v=15" onload="onBundleLoaded()" onerror="onBundleError()"></script>
+    <script src="/lib/smartui-mcp-crm.js?v=34" onload="onBundleLoaded()" onerror="onBundleError()"></script>
 
 </body>
 

@@ -61,7 +61,7 @@ router.get('/analyze', async (req, res) => {
                     const { getLiveMessages } = require('../agents/notificationsAgent');
                     const msgs = await getLiveMessages(interactionId);
                     if (msgs.length) {
-                        transcriptText = msgs.map(m => `${m.sender}: ${m.body}`).join('\n');
+                        transcriptText = formatConversation(msgs, mediaType, interactionId);
                         console.log(`[transcript] using ${msgs.length} live msg(s) as transcript for ${interactionId}`);
                     }
                 } catch (e) {
@@ -73,7 +73,10 @@ router.get('/analyze', async (req, res) => {
         // Analyze transcript (with AI or heuristic fallback)
         const intel = await transcript.analyzeTranscript(transcriptText, contactInfo || '');
 
-        console.log(`[transcript] ${interactionId} → ${intel.requestType} | ${intel.customerName}`);
+        // Cache result + transcript text for Mark Done use
+        if (interactionId) transcript.cacheAnalysis(interactionId, intel, transcriptText);
+
+        console.log(`[transcript] ${interactionId} → ${intel.requestType} | ${intel.customerName} | case=${intel.caseNumber || 'null'}`);
         res.json(intel);
 
     } catch (e) {
@@ -81,5 +84,37 @@ router.get('/analyze', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+/**
+ * Formats raw ChatMessage[] into a structured transcript string for AI analysis.
+ *
+ * Output example:
+ *   === Conversazione webmessaging | 5 messaggi ===
+ *   [CLIENTE] (09:12): Buongiorno, non riesco ad accedere al portale
+ *   [AGENTE]  (09:13): Buongiorno, può fornirmi il suo codice fiscale?
+ *   [CLIENTE] (09:14): RSSMRA80A01H501Z
+ *   ...
+ *
+ * This structured format helps the AI maintain conversation context
+ * and correctly identify speaker roles throughout the analysis.
+ */
+function formatConversation(msgs, mediaType, conversationId) {
+    const header =
+        `=== Conversazione ${mediaType || 'webmessaging'} | ${msgs.length} messaggi | ID: ${conversationId} ===\n`;
+
+    const lines = msgs.map(m => {
+        const role = m.direction === 'outbound' ? '[AGENTE]  ' : '[CLIENTE] ';
+        const time = (() => {
+            try {
+                return new Date(m.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            } catch { return '--:--'; }
+        })();
+        return `${role}(${time}): ${m.body}`;
+    });
+
+    return header + lines.join('\n');
+}
 
 module.exports = router;

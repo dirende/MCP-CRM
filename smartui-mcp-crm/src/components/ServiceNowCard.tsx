@@ -20,11 +20,11 @@ interface Props {
 
 // Visual style for each ServiceNow incident state — color + short label + background
 const STATE_STYLE: Record<string, { label: string; color: string; bg: string }> = {
-    'New':         { label: 'NEW',       color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)'  },
-    'In Progress': { label: 'IN CORSO',  color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
-    'On Hold':     { label: 'IN ATTESA', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)'  },
-    'Resolved':    { label: 'RISOLTO',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
-    'Closed':      { label: 'CHIUSO',    color: '#334155', bg: 'rgba(51,65,85,0.3)'     },
+    'New':         { label: 'NEW',         color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)'  },
+    'In Progress': { label: 'IN PROGRESS', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
+    'On Hold':     { label: 'ON HOLD',     color: '#94a3b8', bg: 'rgba(148,163,184,0.1)'  },
+    'Resolved':    { label: 'RESOLVED',    color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+    'Closed':      { label: 'CLOSED',      color: '#334155', bg: 'rgba(51,65,85,0.3)'     },
 };
 
 /** Returns the style for a given state string, with a fallback for unknown states */
@@ -52,7 +52,7 @@ export const ServiceNowCard = ({
     // Build the header badge label based on current state
     const badge = loading       ? 'LIVE'
         : error                 ? 'ERR'
-        : cases.length > 0      ? `${cases.length} CASE`
+        : cases.length > 0      ? `${cases.length} INC`
         : 'NO DATA';
 
     const badgeColor = loading  ? '#ef4444'
@@ -76,7 +76,7 @@ export const ServiceNowCard = ({
                 <Box sx={{ ...iconSx, background: 'rgba(34,197,94,0.15)' }}>
                     <PublicIcon sx={{ fontSize: '14px', color: '#22c55e' }} />
                 </Box>
-                <Typography sx={cardTitleSx}>ServiceNow Cases</Typography>
+                <Typography sx={cardTitleSx}>ServiceNow Object</Typography>
                 {/* Instance hostname pushed to the right by marginLeft: 'auto' */}
                 <Typography sx={{ fontSize: '0.62rem', color: '#94a3b8', marginLeft: 'auto' }}>
                     ven07529.service-now.com
@@ -98,17 +98,17 @@ export const ServiceNowCard = ({
             {/* Body — conditionally rendered based on collapsed state */}
             {!collapsed && (
                 <Box sx={{ padding: '10px 12px' }}>
-                    {loading && <LoadingRow label="Ricerca casi su ServiceNow..." />}
+                    {loading && <LoadingRow label="Loading ServiceNow records..." />}
 
                     {!loading && error && (
                         <Typography sx={{ fontSize: '0.7rem', color: '#ef4444' }}>⚠ {error}</Typography>
                     )}
 
                     {!loading && !error && cases.length === 0 && (
-                        <EmptyState icon="🌐" label="Nessun caso trovato per questo cliente" />
+                        <EmptyState icon="🌐" label="No records found for this contact" />
                     )}
 
-                    {/* Incident list — scrollable, max 3 visible cards */}
+                    {/* Incident list — max 3 records */}
                     {!loading && !error && <Box sx={{ maxHeight: '260px', overflowY: 'auto',
                         pr: '4px',
                         '&::-webkit-scrollbar': { width: '5px' },
@@ -116,7 +116,7 @@ export const ServiceNowCard = ({
                         '&::-webkit-scrollbar-thumb': { background: '#475569', borderRadius: '4px' },
                         '&::-webkit-scrollbar-thumb:hover': { background: '#64748b' }
                     }}>
-                    {cases.map(c => {
+                    {cases.slice(0, 3).map(c => {
                         const ss = stateStyle(c.state);
                         return (
                             <Box key={c.sys_id} sx={caseSx}>
@@ -139,7 +139,7 @@ export const ServiceNowCard = ({
                                             <Box
                                                 component="span"
                                                 onClick={() => openUrl(c.url!)}
-                                                title="Apri in ServiceNow"
+                                                title="Open in ServiceNow"
                                                 sx={{
                                                     cursor: 'pointer', color: '#94a3b8',
                                                     '&:hover': { color: '#0ea5e9' },
@@ -159,7 +159,7 @@ export const ServiceNowCard = ({
                                     </Stack>
                                     <Stack direction="row" alignItems="center" gap="3px">
                                         <PersonIcon sx={{ fontSize: '10px' }} />
-                                        {c.assignedTo || 'Non assegnato'}
+                                        {c.assignedTo || 'Unassigned'}
                                     </Stack>
                                 </Stack>
                             </Box>
@@ -189,7 +189,7 @@ export const ServiceNowCard = ({
                                 '&.Mui-disabled': { color: '#334155', borderColor: '#334155' }
                             }}
                         >
-                            {creating ? 'Creazione in corso...' : '+ Crea nuovo Case su ServiceNow'}
+                            {creating ? 'Creating...' : '+ Create new Incident on ServiceNow'}
                         </Button>
                     )}
                 </Box>
@@ -218,7 +218,7 @@ const EmptyState = ({ icon, label }: { icon: string; label: string }) => (
 
 // ── Styles ────────────────────────────────────────────────────────
 
-const cardSx      = { background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', overflow: 'hidden' };
+const cardSx      = { background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', overflow: 'clip' };
 const cardHeaderSx = {
     display: 'flex', alignItems: 'center', gap: '8px',
     padding: '8px 12px', borderBottom: '1px solid #334155',

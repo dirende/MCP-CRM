@@ -261,43 +261,72 @@ function mockCases(contactInfo) {
 // ── Incident Mapping ──────────────────────────────────────────────
 
 /**
- * Normalizes a raw ServiceNow incident record to the frontend-friendly shape.
- *
  * ServiceNow returns reference fields in two formats depending on sysparm_display_value:
  *  - display_value=true  → { value: '2', display_value: 'In Progress' }
  *  - display_value=false → plain string '2'
  *
- * This function handles both formats safely using typeof checks.
+ * val()  extracts the raw system value (ID, code).
+ * disp() extracts the human-readable label.
+ * Both return `fallback` when the field is null/undefined.
+ */
+function val(field,  fallback = '') { return (typeof field === 'object' ? field?.value         : field) || fallback; }
+function disp(field, fallback = '') { return (typeof field === 'object' ? field?.display_value : field) || fallback; }
+
+/**
+ * Normalizes a raw ServiceNow incident record to the frontend-friendly shape.
  */
 function mapIncident(inc) {
-    const stateCode  = typeof inc.state === 'object' ? inc.state.value : inc.state;
-    const stateLabel = typeof inc.state === 'object'
-        ? inc.state.display_value
-        : (STATE_MAP[stateCode] || stateCode || 'Unknown');
-
-    const assignee = typeof inc.assigned_to === 'object'
-        ? (inc.assigned_to.display_value || 'Non assegnato')
-        : (inc.assigned_to || 'Non assegnato');
-
-    const openedAt = typeof inc.opened_at === 'object'
-        ? inc.opened_at.display_value
-        : inc.opened_at;
-
-    // Extract caller (customer) name from the caller_id reference field
-    const callerName = typeof inc.caller_id === 'object'
-        ? (inc.caller_id.display_value || null)
-        : null;
+    const stateCode  = val(inc.state);
+    const stateLabel = disp(inc.state) || STATE_MAP[stateCode] || stateCode || 'Unknown';
+    const sysId      = val(inc.sys_id);
 
     return {
-        sys_id:     inc.sys_id?.value        || inc.sys_id     || '',
-        number:     inc.number?.display_value || inc.number    || '',
-        subject:    inc.short_description?.display_value || inc.short_description || '',
+        sys_id:     sysId,
+        number:     disp(inc.number)            || val(inc.number),
+        subject:    disp(inc.short_description) || val(inc.short_description),
         state:      stateLabel,
-        openedAt:   openedAt ? openedAt.split(' ')[0] : '', // date only, no time
-        assignedTo: assignee,
-        callerName,
-        url:        `${INSTANCE}/incident.do?sys_id=${inc.sys_id?.value || inc.sys_id}`
+        openedAt:   disp(inc.opened_at).split(' ')[0], // date only, no time
+        assignedTo: disp(inc.assigned_to, 'Unassigned'),
+        callerName: disp(inc.caller_id)  || null,
+        url:        `${INSTANCE}/incident.do?sys_id=${sysId}`
     };
 }
 
-module.exports = { getCases, createCase };
+// ── Incident Update ───────────────────────────────────────────────
+
+/**
+ * Updates an existing ServiceNow incident identified by its number (e.g. INC0012345).
+ * Uses PATCH on /table/incident/{sys_id} — only specified fields are changed.
+ *
+ * @param {string} number - Incident number (INC/CHG/REQ/RITM)
+ * @param {Object} fields - Fields to update (e.g. { description, work_notes })
+ * @returns {Promise<string|null>} sys_id of the updated record, or null if not found
+ */
+async function updateIncidentByNumber(number, fields) {
+    const client = await apiClient();
+    try {
+        // Resolve incident number → sys_id (needed for PATCH URL)
+        const { data: search } = await client.get('/table/incident', {
+            params: {
+                sysparm_query:         `number=${number}`,
+                sysparm_fields:        'sys_id',
+                sysparm_limit:         1,
+                sysparm_display_value: false
+            }
+        });
+        const record = search.result?.[0];
+        if (!record) {
+            console.warn(`[ServiceNowAgent] updateIncidentByNumber: ${number} not found`);
+            return null;
+        }
+        const sys_id = typeof record.sys_id === 'object' ? record.sys_id.value : record.sys_id;
+        await client.patch(`/table/incident/${sys_id}`, fields);
+        console.log(`[ServiceNowAgent] updated ${number} (${sys_id}): fields=[${Object.keys(fields).join(', ')}]`);
+        return sys_id;
+    } catch (e) {
+        console.error('[ServiceNowAgent] updateIncidentByNumber error:', e.response?.data || e.message);
+        throw e;
+    }
+}
+
+module.exports = { getCases, createCase, updateIncidentByNumber };

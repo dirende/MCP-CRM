@@ -4,6 +4,8 @@ import PersonIcon           from '@mui/icons-material/Person';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AssignmentIcon       from '@mui/icons-material/Assignment';
 import HelpOutlineIcon      from '@mui/icons-material/HelpOutline';
+import InfoOutlinedIcon     from '@mui/icons-material/InfoOutlined';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ExpandMoreIcon       from '@mui/icons-material/ExpandMore';
 import AutoAwesomeIcon      from '@mui/icons-material/AutoAwesome';
 import PsychologyIcon       from '@mui/icons-material/Psychology';
@@ -15,7 +17,7 @@ interface Props {
     error:         string | null;
     contactInfo:   string;
     mediaType:     string;
-    caseUrl?:      string;        // URL to open for existing_case
+    caseUrl?:      string;        // URL to open for existing_case / check_status / close_case
     onCreateCase?: () => void;    // callback to create a new case
 }
 
@@ -63,7 +65,7 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                             }
                         }} />
                         <Typography sx={{ fontSize: '0.58rem', color: '#818cf8', fontStyle: 'italic' }}>
-                            analisi AI...
+                            AI analysis...
                         </Typography>
                     </Box>
                 )}
@@ -92,28 +94,28 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                     '&::-webkit-scrollbar-thumb': { background: '#475569', borderRadius: '4px' },
                     '&::-webkit-scrollbar-thumb:hover': { background: '#64748b' }
                 }}>
-                    {loading && <LoadingRow label="Analisi AI in corso..." />}
+                    {loading && <LoadingRow label="AI analysis in progress..." />}
 
                     {!loading && error && (
                         <Typography sx={{ fontSize: '0.7rem', color: '#ef4444' }}>⚠ {error}</Typography>
                     )}
 
                     {!loading && !error && !data && (
-                        <EmptyState icon="🎤" label="Nessun dato estratto dal transcript" />
+                        <EmptyState icon="🎤" label="No data extracted from transcript" />
                     )}
 
                     {!loading && data && (
                         <Stack gap="8px">
                             {/* Customer name + contact */}
                             <Box sx={intelGridSx}>
-                                <IntelField label="Nome Cliente" value={data.customerName} />
-                                <IntelField label="Contatto"     value={data.contact || contactInfo} />
+                                <IntelField label="Customer Name" value={data.customerName} />
+                                <IntelField label="Contact"       value={data.contact || contactInfo} />
                             </Box>
 
                             {/* Tipo Richiesta — chip + AI engine badge on same row */}
                             <Box sx={intelFieldFullSx}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '6px' }}>
-                                    <Typography sx={intelLabelSx}>Tipo Richiesta</Typography>
+                                    <Typography sx={intelLabelSx}>Request Type</Typography>
                                     {/* AI engine badge — top right of the field */}
                                     {engine && (
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px',
@@ -131,14 +133,16 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                                 <RequestTypeChip
                                     type={data.requestType}
                                     caseRef={data.caseNumber}
-                                    onClick={data.requestType === 'existing_case' && caseUrl
-                                        ? () => window.open(caseUrl, '_blank')
-                                        : data.requestType === 'new_case' && onCreateCase
-                                        ? onCreateCase
-                                        : undefined}
+                                    onClick={
+                                        (data.requestType === 'existing_case' || data.requestType === 'check_status' || data.requestType === 'close_case') && caseUrl
+                                            ? () => window.open(caseUrl, '_blank')
+                                            : data.requestType === 'new_case' && onCreateCase
+                                            ? onCreateCase
+                                            : undefined
+                                    }
                                 />
 
-                                {/* AI summary — clean left-border accent style */}
+                                {/* AI summary */}
                                 {data.requestSummary && (
                                     <Box sx={requestSummaryBoxSx}>
                                         <Typography sx={requestSummaryTextSx}>
@@ -148,13 +152,24 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                                 )}
                             </Box>
 
-                            {/* Transcript excerpt */}
-                            {data.excerpt && (
-                                <Box sx={intelFieldFullSx}>
-                                    <Typography sx={intelLabelSx}>Estratto Transcript</Typography>
-                                    <Box sx={transcriptBoxSx}>{data.excerpt}</Box>
+                            {/* AI suggestion — action hint from AI */}
+                            {data.agentSuggestion && (
+                                <Box sx={agentSuggestionBoxSx}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', mb: '3px' }}>
+                                        <AutoAwesomeIcon sx={{ fontSize: '11px', color: '#818cf8' }} />
+                                        <Typography sx={{ fontSize: '0.58rem', fontWeight: 700,
+                                            color: '#818cf8', textTransform: 'uppercase',
+                                            letterSpacing: '0.4px' }}>
+                                            AI Suggestion
+                                        </Typography>
+                                    </Box>
+                                    <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8',
+                                        lineHeight: 1.45 }}>
+                                        {data.agentSuggestion}
+                                    </Typography>
                                 </Box>
                             )}
+
                         </Stack>
                     )}
                 </Box>
@@ -180,9 +195,9 @@ const RequestTypeChip = ({ type, caseRef, onClick }: {
     if (type === 'new_case') {
         return (
             <Chip icon={<AddCircleOutlineIcon />}
-                label={clickable ? '+ Crea nuovo Case →' : 'Nuovo Case'}
+                label={clickable ? '+ Create new Incident →' : 'New Incident'}
                 onClick={onClick}
-                title={clickable ? 'Crea nuovo caso in ServiceNow' : undefined}
+                title={clickable ? 'Create new case in ServiceNow' : undefined}
                 sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
                     background: 'rgba(239,68,68,0.15)', color: '#f87171',
                     border: '1px solid rgba(239,68,68,0.4)',
@@ -193,9 +208,9 @@ const RequestTypeChip = ({ type, caseRef, onClick }: {
     if (type === 'existing_case') {
         return (
             <Chip icon={<AssignmentIcon />}
-                label={caseRef ? `${caseRef} ↗` : 'Case esistente'}
+                label={caseRef ? `${caseRef} ↗` : 'Existing Incident'}
                 onClick={onClick}
-                title={clickable ? 'Apri in ServiceNow' : undefined}
+                title={clickable ? 'Open in ServiceNow' : undefined}
                 sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
                     background: 'rgba(34,197,94,0.15)', color: '#4ade80',
                     border: '1px solid rgba(34,197,94,0.4)',
@@ -203,8 +218,34 @@ const RequestTypeChip = ({ type, caseRef, onClick }: {
                     ...clickSx }} />
         );
     }
+    if (type === 'check_status') {
+        return (
+            <Chip icon={<InfoOutlinedIcon />}
+                label={caseRef ? `Status ${caseRef} ↗` : 'Check ticket status'}
+                onClick={onClick}
+                title={clickable ? 'Open ticket in ServiceNow' : undefined}
+                sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
+                    background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
+                    border: '1px solid rgba(251,191,36,0.4)',
+                    '& .MuiChip-icon': { color: '#fbbf24', fontSize: '16px' },
+                    ...clickSx }} />
+        );
+    }
+    if (type === 'close_case') {
+        return (
+            <Chip icon={<CheckCircleOutlineIcon />}
+                label={caseRef ? `Close ${caseRef} ↗` : 'Close ticket'}
+                onClick={onClick}
+                title={clickable ? 'Open ticket to close in ServiceNow' : undefined}
+                sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
+                    background: 'rgba(168,85,247,0.15)', color: '#c084fc',
+                    border: '1px solid rgba(168,85,247,0.4)',
+                    '& .MuiChip-icon': { color: '#c084fc', fontSize: '16px' },
+                    ...clickSx }} />
+        );
+    }
     return (
-        <Chip icon={<HelpOutlineIcon />} label="In analisi..."
+        <Chip icon={<HelpOutlineIcon />} label="Analyzing..."
             sx={{ fontSize: '0.72rem', fontWeight: 600, height: '26px',
                 background: 'rgba(148,163,184,0.1)', color: '#94a3b8',
                 '& .MuiChip-icon': { color: '#94a3b8', fontSize: '16px' } }} />
@@ -247,7 +288,7 @@ const cardSx = {
     background:   '#1e293b',
     border:       '1px solid #334155',
     borderRadius: '10px',
-    overflow:     'hidden'
+    overflow:     'clip'
 };
 
 const cardHeaderSx = {
@@ -328,4 +369,13 @@ const requestSummaryTextSx = {
     color:      '#c7d2fe',
     fontWeight: 500,
     lineHeight: 1.5
+};
+
+/** AI suggestion box — indigo left-border accent */
+const agentSuggestionBoxSx = {
+    background:   'rgba(129,140,248,0.05)',
+    border:       '1px solid rgba(129,140,248,0.2)',
+    borderLeft:   '3px solid rgba(129,140,248,0.6)',
+    borderRadius: '0 6px 6px 0',
+    padding:      '7px 10px',
 };

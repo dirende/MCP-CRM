@@ -51,7 +51,7 @@ export const InteractionHistoryCard = ({ data, loading, error }: Props) => {
     return (
         <Box sx={cardSx}>
             {/* Header — always visible, contains title + count badge + collapse toggle */}
-            <Box sx={cardHeaderSx}>
+            <Box sx={cardHeaderSx(collapsed)}>
                 <Box sx={{ ...iconSx, background: 'rgba(99,102,241,0.15)' }}>
                     <BarChartIcon sx={{ fontSize: '14px', color: '#6366f1' }} />
                 </Box>
@@ -77,14 +77,14 @@ export const InteractionHistoryCard = ({ data, loading, error }: Props) => {
             {/* Body — conditionally rendered based on collapsed state */}
             {!collapsed && (
                 <Box sx={{ padding: '10px 12px' }}>
-                    {loading && <LoadingRow label="Caricamento da Genesys Cloud API..." />}
+                    {loading && <LoadingRow label="Loading from Genesys Cloud API..." />}
 
                     {!loading && error && (
                         <Typography sx={{ fontSize: '0.7rem', color: '#ef4444' }}>⚠ {error}</Typography>
                     )}
 
                     {!loading && !error && data.length === 0 && (
-                        <EmptyState icon="📊" label="Nessuna interazione storica trovata" />
+                        <EmptyState icon="📊" label="No interaction history found" />
                     )}
 
                     {!loading && !error && data.length > 0 && (
@@ -92,7 +92,7 @@ export const InteractionHistoryCard = ({ data, loading, error }: Props) => {
                         <Table size="small" sx={{ '& .MuiTableCell-root': { padding: '5px 6px', borderColor: 'rgba(51,65,85,0.5)' } }}>
                             <TableHead>
                                 <TableRow>
-                                    {['Data/Ora', 'Canale', 'Durata', 'Wrapup'].map(h => (
+                                    {['Date/Time', 'Channel', 'Duration', 'Wrapup'].map(h => (
                                         <TableCell key={h} sx={thSx}>{h}</TableCell>
                                     ))}
                                 </TableRow>
@@ -146,7 +146,7 @@ export const InteractionHistoryCard = ({ data, loading, error }: Props) => {
  */
 function formatDate(iso: string): string {
     try {
-        return new Date(iso).toLocaleString('it-IT', {
+        return new Date(iso).toLocaleString('en-GB', {
             day: '2-digit', month: '2-digit', year: '2-digit',
             hour: '2-digit', minute: '2-digit'
         });
@@ -171,12 +171,13 @@ const EmptyState = ({ icon, label }: { icon: string; label: string }) => (
 
 // ── Styles ────────────────────────────────────────────────────────
 
-const cardSx      = { background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', overflow: 'hidden' };
-const cardHeaderSx = {
+const cardSx      = { background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', overflow: 'clip' };
+const cardHeaderSx = (collapsed: boolean) => ({
     display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '8px 12px', borderBottom: '1px solid #334155',
+    padding: '8px 12px',
+    borderBottom: collapsed ? 'none' : '1px solid #334155',
     background: 'rgba(255,255,255,0.02)'
-};
+});
 const iconSx      = {
     width: 26, height: 26, borderRadius: '6px',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0

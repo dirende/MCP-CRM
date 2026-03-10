@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { SnowCase } from '../models/interfaces/params';
 import { Logger } from '../utils/Logger';
+import { delay } from '../utils/delay';
 
 /**
  * useServiceNowCases — fetches ServiceNow incidents for a contact and supports creating new ones.
@@ -84,24 +85,30 @@ export function useServiceNowCases(contactInfo: string, backendUrl: string) {
      * @param contactInfoArg - Customer contact (can differ from the hook's contactInfo)
      * @param interactionId  - Current Genesys interaction ID (stored in work_notes)
      */
-    async function createCase(contactInfoArg: string, interactionId: string) {
+    async function createCase(
+        contactInfoArg: string,
+        interactionId:  string,
+        shortDescription?: string,
+        onCreated?: (c: SnowCase) => void
+    ) {
         if (creating) return; // prevent duplicate submissions
         setCreating(true);
 
         try {
             let newCase: SnowCase;
+            const desc = shortDescription || 'Incident created by MCP-CRM Integration';
 
             if (!backendUrl) {
                 // Development mode: generate a fake case number and return immediately
                 await delay(1000);
-                const fakeNum = 'INC0' + (10400 + Math.floor(Math.random() * 100)).toString().padStart(4, '0');
+                const fakeNum = `INC${String(10000 + Math.floor(Math.random() * 1000)).padStart(7, '0')}`;
                 newCase = {
                     sys_id:     'mock-' + Date.now(),
                     number:     fakeNum,
-                    subject:    'Case creato da MCP-CRM Integration',
+                    subject:    desc,
                     state:      'New',
                     openedAt:   new Date().toLocaleDateString('it-IT'),
-                    assignedTo: 'Non assegnato',
+                    assignedTo: 'Unassigned',
                     url:        undefined
                 };
             } else {
@@ -111,7 +118,7 @@ export function useServiceNowCases(contactInfo: string, backendUrl: string) {
                     body:    JSON.stringify({
                         contactInfo:       contactInfoArg,
                         interactionId,
-                        short_description: 'Case creato da MCP-CRM Integration'
+                        short_description: desc
                     })
                 });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -122,6 +129,9 @@ export function useServiceNowCases(contactInfo: string, backendUrl: string) {
 
             // Prepend the new case to the top of the list
             setCases(prev => [newCase, ...prev]);
+
+            // Notify caller with the created case (e.g. to propagate caseNumber to host)
+            onCreated?.(newCase);
 
             // Screen pop — open the ServiceNow incident in a new tab
             if (newCase.url) window.open(newCase.url, '_blank');
@@ -159,7 +169,7 @@ const MOCK: Record<string, SnowCase[]> = {
     ],
     'mario.rossi@azienda.it': [
         { sys_id: 's4', number: 'INC0010301', subject: 'Accesso negato portale clienti',
-          state: 'New',         openedAt: '2026-03-06', assignedTo: 'Non assegnato',
+          state: 'New',         openedAt: '2026-03-06', assignedTo: 'Unassigned',
           url: 'https://ven07529.service-now.com/incident.do?sys_id=s4' },
     ],
     '393349089191': [
@@ -173,7 +183,3 @@ function mockCases(contactInfo: string): SnowCase[] {
     return MOCK[contactInfo] || [];
 }
 
-/** Simulates a network delay for mock data (milliseconds) */
-function delay(ms: number) {
-    return new Promise(r => setTimeout(r, ms));
-}

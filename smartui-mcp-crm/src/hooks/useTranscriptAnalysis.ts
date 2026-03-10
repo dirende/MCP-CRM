@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CustomerIntel } from '../models/interfaces/params';
 import { Logger } from '../utils/Logger';
+import { delay } from '../utils/delay';
 
 /**
  * useTranscriptAnalysis — fetches AI-analyzed customer intelligence for the current interaction.
@@ -36,48 +37,67 @@ export function useTranscriptAnalysis(
     useEffect(() => {
         if (!interactionId && !contactInfo) return; // nothing to analyze
 
-        // Cancel any in-flight request from the previous render
-        abortRef.current?.abort();
-        const controller  = new AbortController();
-        abortRef.current  = controller;
+        // Debounce: wait 2s after the last message before calling the backend.
+        // This prevents aborting every Gemini call when messages arrive in rapid succession.
+        const timer = setTimeout(() => {
+            // Cancel any previous in-flight request before starting a new one
+            abortRef.current?.abort();
+            const controller = new AbortController();
+            abortRef.current = controller;
 
-        setLoading(true);
-        setError(null);
-        setData(null);
+            setLoading(true);
+            setError(null);
+            // Note: intentionally NOT resetting data to null —
+            // keep showing the last known result while re-analyzing.
 
-        const run = async () => {
-            try {
-                if (!backendUrl) {
-                    // Development mode: simulate network delay and return mock data
-                    await delay(1200);
-                    setData(mockIntel(contactInfo));
-                    return;
+            const run = async () => {
+                try {
+                    if (!backendUrl) {
+                        await delay(1200);
+                        setData(mockIntel(contactInfo));
+                        return;
+                    }
+
+                    const url = `${backendUrl}/api/transcript/analyze` +
+                        `?interactionId=${encodeURIComponent(interactionId)}` +
+                        `&contactInfo=${encodeURIComponent(contactInfo)}`;
+
+                    const res = await fetch(url, { signal: controller.signal });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                    const json = await res.json() as CustomerIntel;
+                    Logger.log('useTranscriptAnalysis', json);
+
+                    // Non-regression: if the new result is 'unknown' but we already have a
+                    // more specific classification, keep the previous requestType and caseNumber
+                    // (Gemini can return 'unknown' on a retry even after correctly classifying
+                    //  check_status/close_case, which would cause the chip to revert to grey).
+                    const SPECIFIC = ['new_case', 'existing_case', 'check_status', 'close_case'];
+                    setData(prev => {
+                        if (json.requestType === 'unknown' && prev && SPECIFIC.includes(prev.requestType)) {
+                            return {
+                                ...json,
+                                requestType: prev.requestType,
+                                caseNumber:  json.caseNumber ?? prev.caseNumber,
+                            };
+                        }
+                        return json;
+                    });
+
+                } catch (e: any) {
+                    if (e.name === 'AbortError') return; // request was intentionally cancelled
+                    Logger.error('useTranscriptAnalysis', e);
+                    setError(e.message || 'Error analyzing transcript');
+                } finally {
+                    setLoading(false);
                 }
+            };
 
-                const url = `${backendUrl}/api/transcript/analyze` +
-                    `?interactionId=${encodeURIComponent(interactionId)}` +
-                    `&contactInfo=${encodeURIComponent(contactInfo)}`;
+            run();
+        }, 2000); // wait 2s after last message before triggering analysis
 
-                const res = await fetch(url, { signal: controller.signal });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const json = await res.json();
-                setData(json as CustomerIntel);
-                Logger.log('useTranscriptAnalysis', json);
-
-            } catch (e: any) {
-                if (e.name === 'AbortError') return; // request was intentionally cancelled
-                Logger.error('useTranscriptAnalysis', e);
-                setError(e.message || 'Error analyzing transcript');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        run();
-
-        // Cleanup: cancel the request if the component unmounts or inputs change
-        return () => controller.abort();
+        // Cleanup: cancel the debounce timer if a new message arrives before it fires
+        return () => clearTimeout(timer);
     }, [interactionId, contactInfo, backendUrl, messageRevision]);
 
     return { data, loading, error };
@@ -127,7 +147,3 @@ function mockIntel(contactInfo: string): CustomerIntel {
     };
 }
 
-/** Simulates a network delay for mock data (milliseconds) */
-function delay(ms: number) {
-    return new Promise(r => setTimeout(r, ms));
-}
