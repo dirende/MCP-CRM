@@ -100,9 +100,9 @@ function App({ ctiMessage, params, id }: AppProps) {
     const { messages: liveMessages, loading: liveLoading, error: liveError } =
         useLiveMessages(interactionId, mediaType, backendUrl);
 
-    // Re-analyze every 3 new messages (revision 1 at msg 3, 2 at msg 6, etc.)
+    // Re-analyze on every new message — AbortController cancels in-flight calls automatically
     const { data: intel, loading: intelLoading, error: intelError } =
-        useTranscriptAnalysis(interactionId, contactInfo, backendUrl, Math.floor(liveMessages.length / 3));
+        useTranscriptAnalysis(interactionId, contactInfo, backendUrl, liveMessages.length);
 
     // ── onOpen Callback ───────────────────────────────────────────
 
