@@ -109,12 +109,12 @@ export const ServiceNowCard = ({
                     )}
 
                     {/* Incident list — scrollable, max 3 visible cards */}
-                    {!loading && !error && <Box sx={{ maxHeight: '280px', overflowY: 'auto',
-                        pr: '2px',
-                        '&::-webkit-scrollbar': { width: '4px' },
-                        '&::-webkit-scrollbar-track': { background: 'transparent' },
-                        '&::-webkit-scrollbar-thumb': { background: '#334155', borderRadius: '4px' },
-                        '&::-webkit-scrollbar-thumb:hover': { background: '#475569' }
+                    {!loading && !error && <Box sx={{ maxHeight: '260px', overflowY: 'auto',
+                        pr: '4px',
+                        '&::-webkit-scrollbar': { width: '5px' },
+                        '&::-webkit-scrollbar-track': { background: 'rgba(255,255,255,0.03)', borderRadius: '4px' },
+                        '&::-webkit-scrollbar-thumb': { background: '#475569', borderRadius: '4px' },
+                        '&::-webkit-scrollbar-thumb:hover': { background: '#64748b' }
                     }}>
                     {cases.map(c => {
                         const ss = stateStyle(c.state);

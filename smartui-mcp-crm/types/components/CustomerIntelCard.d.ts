@@ -5,6 +5,8 @@ interface Props {
     error: string | null;
     contactInfo: string;
     mediaType: string;
+    caseUrl?: string;
+    onCreateCase?: () => void;
 }
-export declare const CustomerIntelCard: ({ data, loading, error, contactInfo, mediaType }: Props) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomerIntelCard: ({ data, loading, error, contactInfo, mediaType, caseUrl, onCreateCase }: Props) => import("react/jsx-runtime").JSX.Element;
 export {};

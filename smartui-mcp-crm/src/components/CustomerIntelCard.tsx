@@ -10,11 +10,13 @@ import PsychologyIcon       from '@mui/icons-material/Psychology';
 import { CustomerIntel } from '../models/interfaces/params';
 
 interface Props {
-    data:        CustomerIntel | null;
-    loading:     boolean;
-    error:       string | null;
-    contactInfo: string;
-    mediaType:   string;
+    data:          CustomerIntel | null;
+    loading:       boolean;
+    error:         string | null;
+    contactInfo:   string;
+    mediaType:     string;
+    caseUrl?:      string;        // URL to open for existing_case
+    onCreateCase?: () => void;    // callback to create a new case
 }
 
 const MEDIA_ICON: Record<string, string> = {
@@ -29,7 +31,7 @@ const AI_ENGINE: Record<string, { label: string; color: string; bg: string }> = 
     heuristic: { label: 'Heuristic',  color: '#94a3b8', bg: 'rgba(148,163,184,0.1)'  },
 };
 
-export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType }: Props) => {
+export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType, caseUrl, onCreateCase }: Props) => {
     const [collapsed, setCollapsed] = React.useState(true);
 
     React.useEffect(() => {
@@ -84,7 +86,12 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
 
             {/* ── Body ── */}
             {!collapsed && (
-                <Box sx={{ padding: '10px 12px' }}>
+                <Box sx={{ padding: '10px 12px', maxHeight: '320px', overflowY: 'auto',
+                    '&::-webkit-scrollbar': { width: '4px' },
+                    '&::-webkit-scrollbar-track': { background: 'transparent' },
+                    '&::-webkit-scrollbar-thumb': { background: '#475569', borderRadius: '4px' },
+                    '&::-webkit-scrollbar-thumb:hover': { background: '#64748b' }
+                }}>
                     {loading && <LoadingRow label="Analisi AI in corso..." />}
 
                     {!loading && error && (
@@ -121,7 +128,15 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                                     )}
                                 </Box>
 
-                                <RequestTypeChip type={data.requestType} caseRef={data.caseNumber} />
+                                <RequestTypeChip
+                                    type={data.requestType}
+                                    caseRef={data.caseNumber}
+                                    onClick={data.requestType === 'existing_case' && caseUrl
+                                        ? () => window.open(caseUrl, '_blank')
+                                        : data.requestType === 'new_case' && onCreateCase
+                                        ? onCreateCase
+                                        : undefined}
+                                />
 
                                 {/* AI summary — clean left-border accent style */}
                                 {data.requestSummary && (
@@ -150,23 +165,42 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
 
 // ── Sub-components ────────────────────────────────────────────────
 
-const RequestTypeChip = ({ type, caseRef }: { type: CustomerIntel['requestType']; caseRef?: string }) => {
+const RequestTypeChip = ({ type, caseRef, onClick }: {
+    type:     CustomerIntel['requestType'];
+    caseRef?: string;
+    onClick?: () => void;
+}) => {
+    const clickable = !!onClick;
+    const clickSx = clickable ? {
+        cursor: 'pointer',
+        '&:hover': { filter: 'brightness(1.25)', transform: 'translateY(-1px)' },
+        transition: 'all 0.15s ease'
+    } : {};
+
     if (type === 'new_case') {
         return (
-            <Chip icon={<AddCircleOutlineIcon />} label="Nuovo Case"
+            <Chip icon={<AddCircleOutlineIcon />}
+                label={clickable ? '+ Crea nuovo Case →' : 'Nuovo Case'}
+                onClick={onClick}
+                title={clickable ? 'Crea nuovo caso in ServiceNow' : undefined}
                 sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
                     background: 'rgba(239,68,68,0.15)', color: '#f87171',
                     border: '1px solid rgba(239,68,68,0.4)',
-                    '& .MuiChip-icon': { color: '#f87171', fontSize: '16px' } }} />
+                    '& .MuiChip-icon': { color: '#f87171', fontSize: '16px' },
+                    ...clickSx }} />
         );
     }
     if (type === 'existing_case') {
         return (
-            <Chip icon={<AssignmentIcon />} label={caseRef || 'Case esistente'}
+            <Chip icon={<AssignmentIcon />}
+                label={caseRef ? `${caseRef} ↗` : 'Case esistente'}
+                onClick={onClick}
+                title={clickable ? 'Apri in ServiceNow' : undefined}
                 sx={{ fontSize: '0.72rem', fontWeight: 700, height: '26px',
                     background: 'rgba(34,197,94,0.15)', color: '#4ade80',
                     border: '1px solid rgba(34,197,94,0.4)',
-                    '& .MuiChip-icon': { color: '#4ade80', fontSize: '16px' } }} />
+                    '& .MuiChip-icon': { color: '#4ade80', fontSize: '16px' },
+                    ...clickSx }} />
         );
     }
     return (

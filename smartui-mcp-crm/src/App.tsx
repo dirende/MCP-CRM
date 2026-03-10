@@ -179,6 +179,8 @@ function App({ ctiMessage, params, id }: AppProps) {
                     error={intelError}
                     contactInfo={contactInfo}
                     mediaType={mediaType}
+                    caseUrl={cases?.find(c => c.number === intel?.caseNumber)?.url}
+                    onCreateCase={() => createCase(contactInfo, interactionId)}
                 />
 
                 {/* Interaction History — last 5 interactions from Genesys Cloud */}
