@@ -108,8 +108,15 @@ export const ServiceNowCard = ({
                         <EmptyState icon="🌐" label="Nessun caso trovato per questo cliente" />
                     )}
 
-                    {/* Incident list — one card per incident */}
-                    {!loading && !error && cases.map(c => {
+                    {/* Incident list — scrollable, max 3 visible cards */}
+                    {!loading && !error && <Box sx={{ maxHeight: '280px', overflowY: 'auto',
+                        pr: '2px',
+                        '&::-webkit-scrollbar': { width: '4px' },
+                        '&::-webkit-scrollbar-track': { background: 'transparent' },
+                        '&::-webkit-scrollbar-thumb': { background: '#334155', borderRadius: '4px' },
+                        '&::-webkit-scrollbar-thumb:hover': { background: '#475569' }
+                    }}>
+                    {cases.map(c => {
                         const ss = stateStyle(c.state);
                         return (
                             <Box key={c.sys_id} sx={caseSx}>
@@ -158,6 +165,7 @@ export const ServiceNowCard = ({
                             </Box>
                         );
                     })}
+                    </Box>}
 
                     {/* Create new case button — disabled while POST is in flight */}
                     {!loading && (
