@@ -5,6 +5,8 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AssignmentIcon       from '@mui/icons-material/Assignment';
 import HelpOutlineIcon      from '@mui/icons-material/HelpOutline';
 import ExpandMoreIcon       from '@mui/icons-material/ExpandMore';
+import AutoAwesomeIcon      from '@mui/icons-material/AutoAwesome';
+import PsychologyIcon       from '@mui/icons-material/Psychology';
 import { CustomerIntel } from '../models/interfaces/params';
 
 interface Props {
@@ -15,22 +17,19 @@ interface Props {
     mediaType:   string;
 }
 
-// Maps Genesys mediaType values to emoji icons for quick visual recognition
 const MEDIA_ICON: Record<string, string> = {
     voice: '📞', email: '✉️', webmessaging: '💬', chat: '💬',
     whatsapp: '📱', sms: '📱'
 };
 
-/**
- * CustomerIntelCard — displays AI-analyzed customer intelligence for the active interaction.
- *
- * Shows: customer name, contact info, request type (new/existing case), and a transcript excerpt.
- * The card body is collapsible — click the chevron icon in the header to toggle.
- *
- * Data comes from the useTranscriptAnalysis hook (via App.tsx).
- */
+/** Which AI engine label + color to show */
+const AI_ENGINE: Record<string, { label: string; color: string; bg: string }> = {
+    claude:    { label: 'Claude AI',  color: '#fb923c', bg: 'rgba(251,146,60,0.12)' },
+    gemini:    { label: 'Gemini AI',  color: '#818cf8', bg: 'rgba(129,140,248,0.12)' },
+    heuristic: { label: 'Heuristic',  color: '#94a3b8', bg: 'rgba(148,163,184,0.1)'  },
+};
+
 export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType }: Props) => {
-    // Start collapsed; auto-expand when meaningful data arrives
     const [collapsed, setCollapsed] = React.useState(true);
 
     React.useEffect(() => {
@@ -39,20 +38,38 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
         }
     }, [data]);
 
+    const engine = data?.aiEngine ? (AI_ENGINE[data.aiEngine] || AI_ENGINE.heuristic) : null;
+
     return (
         <Box sx={cardSx}>
-            {/* Header — always visible, contains title + status badge + collapse toggle */}
+            {/* ── Header ── */}
             <Box sx={cardHeaderSx}>
                 <Box sx={{ ...iconSx, background: 'rgba(14,165,233,0.15)' }}>
                     <PersonIcon sx={{ fontSize: '14px', color: '#0ea5e9' }} />
                 </Box>
                 <Typography sx={cardTitleSx}>Customer Intelligence</Typography>
-                {/* Sub-label pushed to the right by marginLeft: 'auto' on cardSubSx */}
+
+                {/* AI thinking animation — shown while loading */}
+                {loading && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', ml: '6px' }}>
+                        <AutoAwesomeIcon sx={{
+                            fontSize: '13px', color: '#818cf8',
+                            animation: 'aiPulse 1.2s ease-in-out infinite',
+                            '@keyframes aiPulse': {
+                                '0%,100%': { opacity: 1, transform: 'scale(1)' },
+                                '50%':     { opacity: 0.3, transform: 'scale(0.8)' }
+                            }
+                        }} />
+                        <Typography sx={{ fontSize: '0.58rem', color: '#818cf8', fontStyle: 'italic' }}>
+                            analisi AI...
+                        </Typography>
+                    </Box>
+                )}
+
                 <Typography sx={cardSubSx}>
                     {MEDIA_ICON[mediaType] || '🔗'} {mediaType || '—'}
                 </Typography>
                 <StatusBadge loading={loading} hasData={!!data} error={!!error} />
-                {/* Collapse toggle — chevron rotates 90° when body is collapsed */}
                 <IconButton
                     size="small"
                     onClick={() => setCollapsed(c => !c)}
@@ -65,15 +82,13 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                 </IconButton>
             </Box>
 
-            {/* Body — conditionally rendered based on collapsed state */}
+            {/* ── Body ── */}
             {!collapsed && (
                 <Box sx={{ padding: '10px 12px' }}>
-                    {loading && <LoadingRow label="Analisi transcript in corso..." />}
+                    {loading && <LoadingRow label="Analisi AI in corso..." />}
 
                     {!loading && error && (
-                        <Typography sx={{ fontSize: '0.7rem', color: '#ef4444' }}>
-                            ⚠ {error}
-                        </Typography>
+                        <Typography sx={{ fontSize: '0.7rem', color: '#ef4444' }}>⚠ {error}</Typography>
                     )}
 
                     {!loading && !error && !data && (
@@ -82,25 +97,35 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
 
                     {!loading && data && (
                         <Stack gap="8px">
-                            {/* Two-column grid: customer name on the left, contact on the right */}
+                            {/* Customer name + contact */}
                             <Box sx={intelGridSx}>
                                 <IntelField label="Nome Cliente" value={data.customerName} />
                                 <IntelField label="Contatto"     value={data.contact || contactInfo} />
                             </Box>
 
-                            {/* Request type + Gemini summary */}
+                            {/* Tipo Richiesta — chip + AI engine badge on same row */}
                             <Box sx={intelFieldFullSx}>
-                                <Typography sx={intelLabelSx}>Tipo Richiesta</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', mb: data.requestSummary ? '6px' : 0 }}>
-                                    <RequestTypeChip type={data.requestType} caseRef={data.caseNumber} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '6px' }}>
+                                    <Typography sx={intelLabelSx}>Tipo Richiesta</Typography>
+                                    {/* AI engine badge — top right of the field */}
+                                    {engine && (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px',
+                                            background: engine.bg, borderRadius: '4px',
+                                            padding: '2px 6px', border: `1px solid ${engine.color}33` }}>
+                                            <PsychologyIcon sx={{ fontSize: '10px', color: engine.color }} />
+                                            <Typography sx={{ fontSize: '0.55rem', fontWeight: 700,
+                                                color: engine.color, letterSpacing: '0.3px' }}>
+                                                {engine.label}
+                                            </Typography>
+                                        </Box>
+                                    )}
                                 </Box>
-                                {/* Gemini summary — prominent block below the chip */}
+
+                                <RequestTypeChip type={data.requestType} caseRef={data.caseNumber} />
+
+                                {/* AI summary — clean left-border accent style */}
                                 {data.requestSummary && (
                                     <Box sx={requestSummaryBoxSx}>
-                                        <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#818cf8',
-                                            textTransform: 'uppercase', letterSpacing: '0.5px', mb: '3px' }}>
-                                            ✦ Gemini AI
-                                        </Typography>
                                         <Typography sx={requestSummaryTextSx}>
                                             {data.requestSummary}
                                         </Typography>
@@ -108,7 +133,7 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
                                 )}
                             </Box>
 
-                            {/* Transcript excerpt — scrollable monospace text box */}
+                            {/* Transcript excerpt */}
                             {data.excerpt && (
                                 <Box sx={intelFieldFullSx}>
                                     <Typography sx={intelLabelSx}>Estratto Transcript</Typography>
@@ -125,12 +150,6 @@ export const CustomerIntelCard = ({ data, loading, error, contactInfo, mediaType
 
 // ── Sub-components ────────────────────────────────────────────────
 
-/**
- * Colored chip indicating what type of request was detected in the transcript.
- * - new_case:      red — customer wants to open a new ticket
- * - existing_case: green — customer is following up on an existing ticket
- * - unknown:       gray — could not determine the request type
- */
 const RequestTypeChip = ({ type, caseRef }: { type: CustomerIntel['requestType']; caseRef?: string }) => {
     if (type === 'new_case') {
         return (
@@ -158,7 +177,6 @@ const RequestTypeChip = ({ type, caseRef }: { type: CustomerIntel['requestType']
     );
 };
 
-/** Displays a label + value pair inside a subtle bordered box */
 const IntelField = ({ label, value }: { label: string; value: string }) => (
     <Box sx={intelFieldSx}>
         <Typography sx={intelLabelSx}>{label}</Typography>
@@ -166,7 +184,6 @@ const IntelField = ({ label, value }: { label: string; value: string }) => (
     </Box>
 );
 
-/** Color-coded status badge in the card header */
 const StatusBadge = ({ loading, hasData, error }: { loading: boolean; hasData: boolean; error: boolean }) => {
     if (loading) return <Chip label="LIVE" size="small" sx={badgeSx('#ef4444', 'rgba(239,68,68,0.15)')} />;
     if (error)   return <Chip label="ERR"  size="small" sx={badgeSx('#f59e0b', 'rgba(245,158,11,0.15)')} />;
@@ -174,16 +191,14 @@ const StatusBadge = ({ loading, hasData, error }: { loading: boolean; hasData: b
     return               <Chip label="IDLE" size="small" sx={badgeSx('#94a3b8', 'rgba(148,163,184,0.1)')} />;
 };
 
-/** Spinner row shown while data is being fetched */
 const LoadingRow = ({ label }: { label: string }) => (
     <Stack direction="row" alignItems="center" gap="8px" padding="10px 0"
         sx={{ color: '#94a3b8', fontSize: '0.72rem' }}>
-        <CircularProgress size={14} thickness={4} sx={{ color: '#0ea5e9' }} />
+        <CircularProgress size={14} thickness={4} sx={{ color: '#818cf8' }} />
         {label}
     </Stack>
 );
 
-/** Centered placeholder shown when there is no data to display */
 const EmptyState = ({ icon, label }: { icon: string; label: string }) => (
     <Stack alignItems="center" padding="16px 0" gap="4px"
         sx={{ color: '#94a3b8', fontSize: '0.72rem' }}>
@@ -216,7 +231,6 @@ const iconSx = {
 };
 
 const cardTitleSx = { fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0' };
-// marginLeft: 'auto' pushes this element and everything after it to the far right
 const cardSubSx   = { fontSize: '0.62rem', color: '#94a3b8', marginLeft: 'auto' };
 
 const intelGridSx = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' };
@@ -230,7 +244,7 @@ const intelFieldSx = {
 
 const intelFieldFullSx = {
     ...intelFieldSx,
-    gridColumn: '1 / -1' // spans all columns in the grid
+    gridColumn: '1 / -1'
 };
 
 const intelLabelSx = {
@@ -267,19 +281,17 @@ const badgeSx = (color: string, bg: string) => ({
     '& .MuiChip-label': { padding: '0 6px' }
 });
 
-// Gemini summary container — subtle indigo box below the request type chip
+/** Summary text — indigo left-border accent, clean and readable */
 const requestSummaryBoxSx = {
-    background:   'rgba(99,102,241,0.08)',
-    border:       '1px solid rgba(99,102,241,0.25)',
-    borderRadius: '6px',
-    padding:      '6px 9px',
-    marginTop:    '4px'
+    borderLeft:   '3px solid rgba(129,140,248,0.6)',
+    paddingLeft:  '8px',
+    marginTop:    '8px',
 };
 
 const requestSummaryTextSx = {
-    fontSize:   '0.82rem',
+    fontSize:   '0.8rem',
     fontStyle:  'italic',
     color:      '#c7d2fe',
     fontWeight: 500,
-    lineHeight: 1.4
+    lineHeight: 1.5
 };

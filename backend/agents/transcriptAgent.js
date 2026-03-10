@@ -59,7 +59,7 @@ async function analyzeTranscript(transcriptText, contactInfo) {
         geminiSummarize(transcriptText)
     ]);
 
-    return { ...intel, requestSummary };
+    return { ...intel, requestSummary, aiEngine: intel.aiEngine || 'heuristic' };
 }
 
 /**
@@ -102,7 +102,8 @@ async function extractIntel(text, contactInfo) {
             contact:      parsed.contact      || contactInfo,
             requestType:  parsed.requestType  || 'unknown',
             caseNumber:   parsed.caseNumber   || null,
-            excerpt:      parsed.excerpt      || text.slice(0, 200)
+            excerpt:      parsed.excerpt      || text.slice(0, 200),
+            aiEngine:     'claude'
         };
 
     } catch (e) {
@@ -184,7 +185,8 @@ async function geminiExtractIntel(text, contactInfo) {
             contact:      parsed.contact      || contactInfo,
             requestType:  parsed.requestType  || 'unknown',
             caseNumber:   parsed.caseNumber   || null,
-            excerpt:      parsed.excerpt      || text.slice(0, 200)
+            excerpt:      parsed.excerpt      || text.slice(0, 200),
+            aiEngine:     'gemini'
         };
     } catch (e) {
         console.error('[TranscriptAgent] Gemini intel error:', e.message);

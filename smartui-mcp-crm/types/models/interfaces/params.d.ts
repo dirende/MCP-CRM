@@ -25,6 +25,8 @@ export interface CustomerIntel {
     excerpt?: string;
     /** 3-4 word Italian summary of the customer's request, produced by Google Gemini */
     requestSummary?: string;
+    /** AI engine that produced the analysis: 'claude' | 'gemini' | 'heuristic' */
+    aiEngine?: string;
 }
 /** Single message in a live webmessaging/chat conversation */
 export interface ChatMessage {
